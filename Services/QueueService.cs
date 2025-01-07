@@ -10,9 +10,16 @@ public class QueueService : IQueueService
 
     public QueueService(string storageAccountName, string queueName)
     {
+        string uri = $"https://{storageAccountName}.queue.core.windows.net/{queueName}";
+        Console.WriteLine(uri);
+
         _queueClient = new QueueClient(
-                new Uri($"https://{storageAccountName}.queue.core.windows.net/{queueName}"),
+                new Uri(uri),
     new DefaultAzureCredential()
         );
+    }
+
+    public async Task AddMessage(string message) {
+        await _queueClient.SendMessageAsync(message);
     }
 }
