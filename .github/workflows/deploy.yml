@@ -27,9 +27,12 @@ jobs:
       - name: Test
         run: dotnet test --no-restore --verbosity normal
 
-      - name: Resolve Project Dependencies Using .NET
+      - name: 'Resolve Project Dependencies Using Dotnet'
         shell: pwsh
-        run: dotnet build --configuration Release --output '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
+        run: |
+          pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
+          dotnet build --configuration Release --output ./output
+          popd
 
       - name: List published files
         run: dir '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
@@ -39,5 +42,5 @@ jobs:
         uses: Azure/functions-action@v1
         with:
           app-name: 'funcify'
-          package: .
+          package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
