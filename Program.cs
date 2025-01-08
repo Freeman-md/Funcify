@@ -18,7 +18,7 @@ var host = new HostBuilder()
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
 
-        services.AddQueueService(
+        services.AddAzureServices(
             context.Configuration
         );
     })

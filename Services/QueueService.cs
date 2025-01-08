@@ -11,7 +11,6 @@ public class QueueService : IQueueService
     public QueueService(string storageAccountName, string queueName)
     {
         string uri = $"https://{storageAccountName}.queue.core.windows.net/{queueName}";
-        Console.WriteLine(uri);
 
         _queueClient = new QueueClient(
                 new Uri(uri),
@@ -19,7 +18,8 @@ public class QueueService : IQueueService
         );
     }
 
-    public async Task AddMessage(string message) {
+    public async Task AddMessage(string message)
+    {
         await _queueClient.SendMessageAsync(message);
     }
 }
