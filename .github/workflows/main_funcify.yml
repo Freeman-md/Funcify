@@ -40,4 +40,4 @@ jobs:
           app-name: 'funcify'
           slot-name: 'Production'
           package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_E59BB296CC694A349B7C051AD20FDD74 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_1DC030CB3E4D408389BB967898DF6454 }}
