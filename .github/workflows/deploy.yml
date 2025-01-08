@@ -6,6 +6,12 @@ on:
       - main
   workflow_dispatch:
 
+
+env:
+  AZURE_FUNCTIONAPP_NAME: 'funcify'
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'
+  DOTNET_VERSION: '8.0.x' 
+
 jobs:
   build:
     runs-on: windows-latest
@@ -14,28 +20,24 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up .NET Core
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '8.x'
-          include-prerelease: true
-
-      - name: Build with dotnet
-        run: dotnet build --configuration Release
+          dotnet-version: ${{env.DOTNET_VERSION}}
 
       - name: Test
         run: dotnet test --no-restore --verbosity normal
 
-      - name: Publish code files
-        run: dotnet publish Funcify.csproj -c Release -o myapp --self-contained true
+      - name: Resolve Project Dependencies Using Dotnet
+        run: dotnet build --configuration Release -o ./output
 
       - name: List published files
-        run: dir myapp
+        run: dir '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
 
       - name: Upload artifact for build job
         uses: actions/upload-artifact@v3
         with:
           name: .net-app
-          path: myapp
+          path: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
 
   deploy:
     runs-on: windows-latest
@@ -51,5 +53,5 @@ jobs:
         id: deploy-to-functionapp
         uses: Azure/functions-action@v1
         with:
-          app-name: 'funcify'
+          app-name: ${{env.AZURE_FUNCTIONAPP_NAME}}
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
