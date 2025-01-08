@@ -12,11 +12,12 @@ env:
   DOTNET_VERSION: '8.0.x' 
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: 'Checkout GitHub Action'
+        uses: actions/checkout@v4
 
       - name: Set up .NET Environment
         uses: actions/setup-dotnet@v1
@@ -27,26 +28,11 @@ jobs:
         run: dotnet test --no-restore --verbosity normal
 
       - name: Resolve Project Dependencies Using .NET
+        shell: pwsh
         run: dotnet build --configuration Release --output '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
 
       - name: List published files
         run: dir '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
-
-      - name: Upload artifact for build job
-        uses: actions/upload-artifact@v3
-        with:
-          name: .net-app
-          path: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
-
-  deploy:
-    runs-on: windows-latest
-    needs: build
-
-    steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v3
-        with:
-          name: .net-app
 
       - name: Deploy to Azure Function App
         id: deploy-to-functionapp
