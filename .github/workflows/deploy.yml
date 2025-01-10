@@ -23,13 +23,13 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: Test
+        run: dotnet test --no-restore --verbosity normal
+
       - name: Build and Publish Project
         run: |
-          dotnet build --configuration Release
-          dotnet publish --configuration Release --output ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-
-      - name: List Published Files
-        run: dir ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          dotnet build Funcify/Funcify.csproj --configuration Release
+          dotnet publish Funcify/Funcify.csproj --configuration Release --output ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
 
       - name: Deploy to Azure Function App
         uses: Azure/functions-action@v1
