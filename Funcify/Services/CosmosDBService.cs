@@ -39,7 +39,11 @@ public class CosmosDBService : ICosmosDBService
     }
 
     public async Task<T> CreateItem<T>(string databaseName, string containerName, T item) {
-        throw new NotImplementedException();
+        Container container = GetContainer(databaseName, containerName);
+
+        ItemResponse<T> response = await container.CreateItemAsync<T>(item);
+
+        return response.Resource;
     }
 
     private void ValidateInput(string input, string paramName)
