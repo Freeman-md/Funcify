@@ -26,7 +26,7 @@ public class CreateProductTests {
                                     .WithQuantity(quantity)
                                     .Build();
 
-            _cosmosDBService.Setup(service => service.CreateItem());
+            // _cosmosDBService.Setup(service => service.CreateItem());
         #endregion
     }
 

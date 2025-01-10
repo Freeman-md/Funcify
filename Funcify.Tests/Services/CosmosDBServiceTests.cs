@@ -28,7 +28,7 @@ public class CosmosDBServiceTests {
         #endregion
 
         #region Act
-            _cosmosDBService.
+            
         #endregion
     }
 } 

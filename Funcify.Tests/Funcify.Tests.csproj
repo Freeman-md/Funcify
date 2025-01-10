@@ -18,11 +18,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="Xunit" />
+    <ProjectReference Include="../Funcify/Funcify.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Funcify.csproj" />
+    <Using Include="Xunit" />
   </ItemGroup>
 
 </Project>
