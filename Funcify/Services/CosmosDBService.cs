@@ -27,25 +27,22 @@ public class CosmosDBService : ICosmosDBService
 
     public async Task<T?> GetItem<T>(string databaseName, string containerName, string id, string partitionKey)
     {
-        try
-        {
-            Container container = GetContainer(databaseName, containerName);
+        ValidateInput(id, nameof(id));
+        ValidateInput(partitionKey, nameof(partitionKey));
 
-            ItemResponse<T> response = await container.ReadItemAsync<T>(id, new PartitionKey(partitionKey));
+        Container container = GetContainer(databaseName, containerName);
 
-            return response.Resource;
-        }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            return default;
-        }
+        ItemResponse<T> response = await container.ReadItemAsync<T>(id, new PartitionKey(partitionKey));
+
+        return response.Resource;
+
     }
 
     private void ValidateInput(string input, string paramName)
     {
         if (string.IsNullOrEmpty(input))
         {
-            throw new ArgumentNullException(paramName);
+            throw new ArgumentException(paramName);
         }
     }
 
