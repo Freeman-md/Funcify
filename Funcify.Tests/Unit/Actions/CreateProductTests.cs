@@ -18,39 +18,53 @@ public class CreateProductTests {
 
     [Theory]
     [InlineData(["Lenovo PC", 89.99, 9])]
-    public void Invoke_WithValidData_ShouldCreateProduct(string name, decimal price, int quantity) {
-        #region Act
+    [InlineData(["Lenovo PC", 2.99, 0])]
+    public async Task Invoke_WithValidInput_ShouldCreateProduct(string name, decimal price, int quantity) {
+        #region Arrange
             Product product = new ProductBuilder()
                                     .WithName(name)
                                     .WithPrice(price)
                                     .WithQuantity(quantity)
                                     .Build();
 
-            // _cosmosDBService.Setup(service => service.CreateItem());
+            _cosmosDBService.Setup(service => service.CreateItem(It.IsAny<string>(), It.IsAny<string>(), product))
+                            .ReturnsAsync(product);
+        #endregion
+
+        #region Act
+            Product createdProduct = await _createProduct.Invoke(product);
+        #endregion
+
+        #region Assert
+            Assert.NotNull(createdProduct);
+            Assert.Equal(product.Id, createdProduct.Id);
+            Assert.Equal(product.Name, createdProduct.Name);
+            Assert.Equal(product.Price, createdProduct.Price);
+            Assert.Equal(product.Quantity, createdProduct.Quantity);
         #endregion
     }
 
-    // [Theory]
-    // [InlineData([null, 90.9, 9])]
-    // [InlineData(["", 90.9, 9])]
-    // [InlineData(["Product Name", null, 9])]
-    // [InlineData(["Product Name", 0, 9])]
-    // [InlineData(["Product Name", -1, 9])]
-    // [InlineData(["Product Name", 90.9, null])]
-    // [InlineData(["Product Name", 90.9, -1])]
-    // public async Task Invoke_WhenInValidInputsAreProvided_ShouldThrowArgumentException(string name, decimal price, int quantity)
-    // {
-    //     #region Arrange
-    //     Product product = new ProductBuilder()
-    //                             .WithName(name)
-    //                             .WithPrice(price)
-    //                             .WithQuantity(quantity)
-    //                             .Build();
-    //     #endregion
+    [Theory]
+    [InlineData([null, 90.9, 9])]
+    [InlineData(["", 90.9, 9])]
+    [InlineData(["Product Name", null, 9])]
+    [InlineData(["Product Name", 0, 9])]
+    [InlineData(["Product Name", -1, 9])]
+    [InlineData(["Product Name", 90.9, null])]
+    [InlineData(["Product Name", 90.9, -1])]
+    public async Task Invoke_WithInvalidInput_ShouldThrowArgumentException(string name, decimal price, int quantity)
+    {
+        #region Arrange
+        Product product = new ProductBuilder()
+                                .WithName(name)
+                                .WithPrice(price)
+                                .WithQuantity(quantity)
+                                .Build();
+        #endregion
 
-    //     #region Act & Assert
-    //     await Assert.ThrowsAsync<ArgumentException>(async () => await _createProduct.Invoke(product));
-    //     #endregion        
-    // }
+        #region Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(async () => await _createProduct.Invoke(product));
+        #endregion        
+    }
 
 }

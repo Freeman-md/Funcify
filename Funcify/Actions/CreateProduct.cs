@@ -9,9 +9,7 @@ public class CreateProduct {
         _cosmosDBService = cosmosDBService;
     }
 
-    public async Task Invoke(string json) {
-        // TODO: Deserialize json into product object
-
+    public async Task<Product> Invoke(Product product) {
         // TODO: Validate product
 
         // TODO: Create product in cosmos db
