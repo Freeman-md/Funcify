@@ -3,16 +3,43 @@ using Funcify.Services;
 
 namespace Funcify.Actions;
 
-public class CreateProduct {
+public class CreateProduct
+{
     private readonly ICosmosDBService _cosmosDBService;
-    public CreateProduct(ICosmosDBService cosmosDBService) {
+    private readonly string _databaseName;
+    private readonly string _containerName;
+    public CreateProduct(ICosmosDBService cosmosDBService)
+    {
         _cosmosDBService = cosmosDBService;
+        
+        _databaseName = "Funcify";
+        _containerName = "Products";
     }
 
-    public async Task<Product> Invoke(Product product) {
-        // TODO: Validate product
+    public async Task<Product> Invoke(Product product)
+    {
+        ValidateProduct(product);
 
-        // TODO: Create product in cosmos db
-        throw new NotImplementedException();
+        Product createdProduct = await _cosmosDBService.CreateItem<Product>(_databaseName, _containerName, product);
+
+        return createdProduct;
     }
+
+    private void ValidateProduct(Product product)
+    {
+        if (product == null)
+        {
+            throw new ArgumentNullException(nameof(product));
+        }
+
+        if (string.IsNullOrWhiteSpace(product.Name))
+            throw new ArgumentException("Product name cannot be null or empty.", nameof(product.Name));
+
+        if (product.Price <= 0)
+            throw new ArgumentException("Product price must be greater than zero.", nameof(product.Price));
+
+        if (product.Quantity < 0)
+            throw new ArgumentException("Product quantity cannot be negative.", nameof(product.Quantity));
+    }
+
 }

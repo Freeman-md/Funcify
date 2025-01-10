@@ -5,6 +5,7 @@ using Microsoft.Extensions.Azure;
 using Funcify.Services;
 using Extensions;
 using Microsoft.Extensions.Configuration;
+using Funcify.Actions;
 
 var host = new HostBuilder()
     .ConfigureAppConfiguration((context, config) =>
@@ -21,6 +22,8 @@ var host = new HostBuilder()
         services.AddAzureServices(
             context.Configuration
         );
+        
+        services.AddSingleton<CreateProduct>();
     })
     .Build();
 
