@@ -18,7 +18,7 @@ public class ProductBuilder
 
     public ProductBuilder WithId(string id)
     {
-        _product.Id = id;
+        _product.id = id;
         return this;
     }
 

@@ -20,6 +20,8 @@ public class CreateProduct
     {
         ValidateProduct(product);
 
+        Console.WriteLine(product);
+
         Product createdProduct = await _cosmosDBService.CreateItem<Product>(_databaseName, _containerName, product);
 
         return createdProduct;
@@ -28,13 +30,11 @@ public class CreateProduct
     private void ValidateProduct(Product product)
     {
         if (product == null)
-        {
             throw new ArgumentNullException(nameof(product));
-        }
 
         if (string.IsNullOrWhiteSpace(product.Name))
             throw new ArgumentException("Product name cannot be null or empty.", nameof(product.Name));
-
+            
         if (product.Price <= 0)
             throw new ArgumentException("Product price must be greater than zero.", nameof(product.Price));
 

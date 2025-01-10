@@ -16,6 +16,7 @@ public static class AzureServicesExtension
 
         CosmosClient client = new CosmosClient(cosmosDBConnectionString);
 
+        services.AddSingleton<CosmosClient>(_ => client);
         services.AddSingleton<IQueueService>(provider => new QueueService(storageAccountName, queueName));
         services.AddSingleton<IBlobService>(provider => new BlobService(storageAccountName));
         services.AddSingleton<ICosmosDBService, CosmosDBService>();

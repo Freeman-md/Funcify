@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Funcify.Contracts.Services;
 using Funcify.Actions;
 using Newtonsoft.Json;
+using Microsoft.Azure.Cosmos;
 
 namespace Funcify
 {
@@ -20,22 +21,97 @@ namespace Funcify
         }
 
         [Function("ProductProcessingFunction")]
-        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "post", "post")] HttpRequest req)
+        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req)
         {
-            _logger.LogInformation("C# HTTP trigger function processed a request.");
-
-            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            Product? productData = JsonConvert.DeserializeObject<Product>(requestBody);
-
-            if (productData == null)
+            try
             {
-                return new BadRequestObjectResult("Product data is null or invalid.");
+                _logger.LogInformation("Processing request to create a product.");
+
+                Product? productData = null;
+
+                if (req.HasFormContentType)
+                {
+                    _logger.LogInformation("Processing form-data request.");
+
+                    var form = await req.ReadFormAsync();
+
+                    // Extract product details
+                    var name = form["Name"].ToString();
+                    var price = decimal.TryParse(form["Price"], out var parsedPrice) ? parsedPrice : 0;
+                    var quantity = int.TryParse(form["Quantity"], out var parsedQuantity) ? parsedQuantity : 0;
+
+                    if (string.IsNullOrWhiteSpace(name) || price <= 0 || quantity < 0)
+                    {
+                        return new BadRequestObjectResult("Invalid product data in form submission.");
+                    }
+
+                    //TODO: Handle File Upload
+
+                    productData = new Product
+                    {
+                        Name = name,
+                        Price = price,
+                        Quantity = quantity,
+                    };
+                }
+                else if (req.ContentType == "application/json")
+                {
+                    _logger.LogInformation("Processing JSON request.");
+
+                    string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+                    productData = JsonConvert.DeserializeObject<Product>(requestBody);
+
+                    if (productData == null)
+                    {
+                        return new BadRequestObjectResult("Product data is null or invalid.");
+                    }
+                }
+                else
+                {
+                    return new BadRequestObjectResult("Unsupported content type. Please send JSON or form-data.");
+                }
+
+                Product createdProduct = await _createProductAction.Invoke(productData);
+
+                _logger.LogInformation($"Product created successfully: {createdProduct}");
+                return new OkObjectResult(new
+                {
+                    Message = "Product created successfully",
+                    Product = createdProduct
+                });
             }
-
-            await _createProductAction.Invoke(productData);
-
-
-            return new OkObjectResult("Welcome to Azure Functions!");
+            catch (ArgumentNullException ex)
+            {
+                _logger.LogError(ex, "Missing required product data.");
+                return new BadRequestObjectResult(new { Error = "Invalid request", Details = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "Invalid product input data.");
+                return new BadRequestObjectResult(new { Error = "Invalid product data", Details = ex.Message });
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                _logger.LogError(ex, "Resource not found in Cosmos DB.");
+                return new NotFoundObjectResult(new { Error = "Resource not found", Details = ex.Message });
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex, "An error occurred while interacting with Cosmos DB.");
+                return new ObjectResult(new { Error = "Cosmos DB error", Details = ex.Message })
+                {
+                    StatusCode = (int)ex.StatusCode
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An unexpected error occurred.");
+                return new ObjectResult(new { Error = "Internal server error", Details = ex.Message })
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError
+                };
+            }
         }
+
     }
 }
