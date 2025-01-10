@@ -10,14 +10,13 @@ public class ProductBuilder
     {
         _product = new Product
         {
-            Id = Guid.NewGuid(),
             Name = Guid.NewGuid().ToString(),
             Price = (decimal)(random.NextDouble() * 100),
             Quantity = random.Next(1, 10)
         };
     }
 
-    public ProductBuilder WithId(Guid id)
+    public ProductBuilder WithId(string id)
     {
         _product.Id = id;
         return this;

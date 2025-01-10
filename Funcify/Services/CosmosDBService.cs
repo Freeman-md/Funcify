@@ -38,6 +38,10 @@ public class CosmosDBService : ICosmosDBService
 
     }
 
+    public async Task<T> CreateItem<T>(string databaseName, string containerName, T item) {
+        throw new NotImplementedException();
+    }
+
     private void ValidateInput(string input, string paramName)
     {
         if (string.IsNullOrEmpty(input))

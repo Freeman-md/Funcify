@@ -1,19 +1,16 @@
 using System;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 public class Product
 {
-    public Guid Id { get; set; }
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
     public required string Name { get; set; }
     public required decimal Price { get; set; }
     public required int Quantity { get; set; }
     public string? UnprocessedImageUrl { get; set; }
     public string? ProcessedImageUrl { get; set; }
-
-    public Product()
-    {
-        Id = Guid.NewGuid();
-    }
 
     // Serialize this Product to JSON
     public string ToJson()
