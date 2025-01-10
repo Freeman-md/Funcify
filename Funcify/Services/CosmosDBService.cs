@@ -38,7 +38,10 @@ public class CosmosDBService : ICosmosDBService
 
     }
 
-    public async Task<T> CreateItem<T>(string databaseName, string containerName, T item) {
+    public async Task<T> CreateItem<T>(string databaseName, string containerName, T item)
+    {
+        ValidateItem(item);
+
         Container container = GetContainer(databaseName, containerName);
 
         ItemResponse<T> response = await container.CreateItemAsync<T>(item);
@@ -51,6 +54,25 @@ public class CosmosDBService : ICosmosDBService
         if (string.IsNullOrEmpty(input))
         {
             throw new ArgumentException(paramName);
+        }
+    }
+
+    private void ValidateItem<T>(T item)
+    {
+        if (item == null)
+            throw new ArgumentNullException(nameof(item));
+
+        var idProperty = typeof(T).GetProperty("id");
+        if (idProperty == null)
+        {
+            throw new ArgumentException("The item must have an 'id' property.");
+        }
+
+        var idValue = idProperty.GetValue(item)?.ToString();
+
+        if (string.IsNullOrEmpty(idValue))
+        {
+            throw new ArgumentException("The 'id' property must have a valid value.");
         }
     }
 

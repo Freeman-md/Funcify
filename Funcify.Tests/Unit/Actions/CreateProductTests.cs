@@ -40,7 +40,7 @@ public class CreateProductTests
 
         #region Assert
         Assert.NotNull(createdProduct);
-        Assert.Equal(product.Id, createdProduct.Id);
+        Assert.Equal(product.id, createdProduct.id);
         Assert.Equal(product.Name, createdProduct.Name);
         Assert.Equal(product.Price, createdProduct.Price);
         Assert.Equal(product.Quantity, createdProduct.Quantity);

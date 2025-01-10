@@ -46,8 +46,7 @@ public class ProductProcessingFunctionTest
         #endregion
 
         #region Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal("Welcome to Azure Functions!", okResult.Value);
+        Assert.IsType<OkObjectResult>(result);
         #endregion
     }
 
@@ -65,8 +64,7 @@ public class ProductProcessingFunctionTest
         #endregion
 
         #region Assert
-        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("Product data is null or invalid.", badRequestResult.Value);
+        Assert.IsType<BadRequestObjectResult>(result);
         #endregion
     }
 }

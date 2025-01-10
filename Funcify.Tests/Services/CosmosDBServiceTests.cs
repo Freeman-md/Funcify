@@ -117,7 +117,7 @@ public class CosmosDBServiceTests
 
         #region Assert
         Assert.NotNull(retrievedProduct);
-        Assert.Equal(product.Id, retrievedProduct.Id);
+        Assert.Equal(product.id, retrievedProduct.id);
         Assert.Equal(product.Name, retrievedProduct.Name);
         Assert.Equal(product.Price, retrievedProduct.Price);
         Assert.Equal(product.Quantity, retrievedProduct.Quantity);
@@ -167,7 +167,7 @@ public class CosmosDBServiceTests
     }
 
     [Fact]
-    public async Task CreateItem_WhenValidInputsAreProvided_ShouldCreateItem()
+    public async Task CreateItem_WithValidItem_ShouldCreateItem()
     {
         #region Arrange
         Product product = new ProductBuilder().Build();
@@ -191,10 +191,32 @@ public class CosmosDBServiceTests
 
         #region Assert
         Assert.NotNull(createdProduct);
-        Assert.Equal(product.Id, createdProduct.Id);
+        Assert.Equal(product.id, createdProduct.id);
         Assert.Equal(product.Name, createdProduct.Name);
         Assert.Equal(product.Price, createdProduct.Price);
         Assert.Equal(product.Quantity, createdProduct.Quantity);
+        #endregion
+    }
+
+    [Fact]
+    public async Task CreateItem_WithNullItem_ShouldThrowArgumentNullException()
+    {
+        #region Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await _cosmosDBService.CreateItem<Product>("Database", "Container", null!));
+        #endregion
+    }
+
+    [Fact]
+    public async Task CreateItem_WithoutItemId_ShouldThrowArgumentException()
+    {
+        #region Arrange
+        var item = new {     
+            Name = "Random Item",
+        };
+        #endregion
+
+        #region Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(async () => await _cosmosDBService.CreateItem("Database", "Container", item));
         #endregion
     }
 
