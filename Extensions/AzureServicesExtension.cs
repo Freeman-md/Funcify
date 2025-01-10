@@ -1,5 +1,6 @@
 using Funcify.Contracts.Services;
 using Funcify.Services;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,9 +14,11 @@ public static class AzureServicesExtension
         string queueName = GetConfigurationValue(configuration, "QueueName");
         string cosmosDBConnectionString = GetConfigurationValue(configuration, "CosmosDBConnectionString");
 
+        CosmosClient client = new CosmosClient(cosmosDBConnectionString);
+
         services.AddSingleton<IQueueService>(provider => new QueueService(storageAccountName, queueName));
         services.AddSingleton<IBlobService>(provider => new BlobService(storageAccountName));
-        services.AddSingleton<ICosmosDBService>(provider => new CosmosDBService(cosmosDBConnectionString));
+        services.AddSingleton<ICosmosDBService, CosmosDBService>();
 
         return services;
     }
