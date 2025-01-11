@@ -1,3 +1,6 @@
+using System.Reflection.Metadata;
+using Azure.Identity;
+using Azure.Storage.Blobs;
 using Funcify.Contracts.Services;
 using Funcify.Services;
 using Microsoft.Azure.Cosmos;
@@ -14,11 +17,17 @@ public static class AzureServicesExtension
         string queueName = GetConfigurationValue(configuration, "QueueName");
         string cosmosDBConnectionString = GetConfigurationValue(configuration, "CosmosDBConnectionString");
 
-        CosmosClient client = new CosmosClient(cosmosDBConnectionString);
+        CosmosClient cosmosClient = new CosmosClient(cosmosDBConnectionString);
+        BlobServiceClient blobServiceClient = new BlobServiceClient(
+            new Uri($"https://{storageAccountName}.blob.core.windows.net"),
+            new DefaultAzureCredential()
+        );
 
-        services.AddSingleton<CosmosClient>(_ => client);
+        services.AddSingleton<CosmosClient>(_ => cosmosClient);
+        services.AddSingleton<BlobServiceClient>(_ => blobServiceClient);
+
         services.AddSingleton<IQueueService>(provider => new QueueService(storageAccountName, queueName));
-        services.AddSingleton<IBlobService>(provider => new BlobService(storageAccountName));
+        services.AddSingleton<IBlobService, BlobService>();
         services.AddSingleton<ICosmosDBService, CosmosDBService>();
 
         return services;
