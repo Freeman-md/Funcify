@@ -3,7 +3,7 @@ using Funcify.Contracts.Services;
 using Funcify.Tests.Builders;
 using Moq;
 
-namespace Funcify.Tests.Unit.Actions;
+namespace Funcify.Tests.Actions;
 
 public class CreateProductTests
 {
@@ -91,8 +91,5 @@ public class CreateProductTests
         var exception = await Assert.ThrowsAnyAsync<Exception>(async () => await _createProduct.Invoke(product));
         #endregion
     }
-
-
-
 
 }
