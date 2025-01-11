@@ -13,7 +13,7 @@ public class BlobService : IBlobService {
         _blobServiceClient = blobServiceClient;
     }
 
-    public Task<BlobContainerClient> CreateBlobContainerIfNotExists(string containerName)
+    public Task<BlobContainerClient> CreateContainerIfNotExistsAsync(string containerName)
     {
         throw new NotImplementedException();
     }
