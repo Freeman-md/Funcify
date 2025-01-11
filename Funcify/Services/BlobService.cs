@@ -13,9 +13,18 @@ public class BlobService : IBlobService {
         _blobServiceClient = blobServiceClient;
     }
 
-    public Task<BlobContainerClient> CreateContainerIfNotExistsAsync(string containerName)
+    public async Task<BlobContainerClient> CreateContainer(string containerName)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(containerName))
+            throw new ArgumentException(nameof(containerName));
+
+        BlobContainerClient blobContainerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+
+        if (!await blobContainerClient.ExistsAsync()) {
+            await blobContainerClient.CreateIfNotExistsAsync();
+        }
+
+        return blobContainerClient;
     }
 
     public Task<Response<BlobContentInfo>> UploadBlobToContainer(string fileName, string localFilePath)

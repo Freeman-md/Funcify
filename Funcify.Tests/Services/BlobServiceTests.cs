@@ -21,7 +21,7 @@ public class BlobServiceTests
     }
 
     [Fact]
-    public async Task CreateContainerIfNotExists_WithValidContainerName_ShouldCreateContainer()
+    public async Task CreateContainer_IfNotExists_WithValidContainerName_ShouldCreateContainer()
     {
         #region Arrange
         string containerName = "unprocessed-images";
@@ -40,7 +40,7 @@ public class BlobServiceTests
         #endregion
 
         #region Act
-        await _blobService.CreateContainerIfNotExistsAsync(containerName);
+        await _blobService.CreateContainer(containerName);
         #endregion
 
         #region Assert
@@ -51,7 +51,7 @@ public class BlobServiceTests
     }
 
     [Fact]
-    public async Task CreateContainerIfNotExists_WithExistingContainer_ShouldNotCreateContainer()
+    public async Task CreateContainer_WithExistingContainer_ShouldNotCreateContainer()
     {
         #region Arrange
         string containerName = "unprocessed-images";
@@ -66,7 +66,7 @@ public class BlobServiceTests
         #endregion
 
         #region Act
-        await _blobService.CreateContainerIfNotExistsAsync(containerName);
+        await _blobService.CreateContainer(containerName);
         #endregion
 
         #region Assert
@@ -79,15 +79,15 @@ public class BlobServiceTests
     [Theory]
     [InlineData([""])]
     [InlineData([null])]
-    public async Task CreateContainerIfNotExists_WithInvalidContainerName_ShouldThrowArgumentException(string containerName)
+    public async Task CreateContainer_WithInvalidContainerName_ShouldThrowArgumentException(string containerName)
     {
         #region Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(async () => await _blobService.CreateContainerIfNotExistsAsync(containerName));
+        await Assert.ThrowsAsync<ArgumentException>(async () => await _blobService.CreateContainer(containerName));
         #endregion
     }
 
     [Fact]
-    public async Task CreateContainerIfNotExists_WhenBlobServiceClientThrows_ShouldPropagateException()
+    public async Task CreateContainer_WhenBlobServiceClientThrows_ShouldPropagateException()
     {
         #region Arrange
         _mockBlobServiceClient
@@ -96,7 +96,7 @@ public class BlobServiceTests
         #endregion
 
         #region Act & Assert
-        await Assert.ThrowsAnyAsync<Exception>(async () => await _blobService.CreateContainerIfNotExistsAsync("unprocessed-images"));
+        await Assert.ThrowsAnyAsync<Exception>(async () => await _blobService.CreateContainer("unprocessed-images"));
 
         _mockBlobServiceClient.Verify(client => client.GetBlobContainerClient("unprocessed-images"), Times.Once);
         #endregion
