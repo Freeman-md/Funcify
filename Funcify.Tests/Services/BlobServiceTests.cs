@@ -22,7 +22,7 @@ public class BlobServiceTests
     }
 
     [Fact]
-    public async Task CreateContainer_IfNotExists_WithValidContainerName_ShouldCreateContainer()
+    public async Task GetContainer_IfNotExists_WithValidContainerName_ShouldGetContainer()
     {
         #region Arrange
         string containerName = "unprocessed-images";
@@ -41,7 +41,7 @@ public class BlobServiceTests
         #endregion
 
         #region Act
-        await _blobService.CreateContainer(containerName);
+        await _blobService.GetContainer(containerName);
         #endregion
 
         #region Assert
@@ -52,7 +52,7 @@ public class BlobServiceTests
     }
 
     [Fact]
-    public async Task CreateContainer_WithExistingContainer_ShouldNotCreateContainer()
+    public async Task GetContainer_WithExistingContainer_ShouldNotGetContainer()
     {
         #region Arrange
         string containerName = "unprocessed-images";
@@ -67,7 +67,7 @@ public class BlobServiceTests
         #endregion
 
         #region Act
-        await _blobService.CreateContainer(containerName);
+        await _blobService.GetContainer(containerName);
         #endregion
 
         #region Assert
@@ -80,15 +80,15 @@ public class BlobServiceTests
     [Theory]
     [InlineData([""])]
     [InlineData([null])]
-    public async Task CreateContainer_WithInvalidContainerName_ShouldThrowArgumentException(string containerName)
+    public async Task GetContainer_WithInvalidContainerName_ShouldThrowArgumentException(string containerName)
     {
         #region Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(async () => await _blobService.CreateContainer(containerName));
+        await Assert.ThrowsAsync<ArgumentException>(async () => await _blobService.GetContainer(containerName));
         #endregion
     }
 
     [Fact]
-    public async Task CreateContainer_WhenBlobServiceClientThrows_ShouldPropagateException()
+    public async Task GetContainer_WhenBlobServiceClientThrows_ShouldPropagateException()
     {
         #region Arrange
         _mockBlobServiceClient
@@ -97,7 +97,7 @@ public class BlobServiceTests
         #endregion
 
         #region Act & Assert
-        await Assert.ThrowsAnyAsync<Exception>(async () => await _blobService.CreateContainer("unprocessed-images"));
+        await Assert.ThrowsAnyAsync<Exception>(async () => await _blobService.GetContainer("unprocessed-images"));
 
         _mockBlobServiceClient.Verify(client => client.GetBlobContainerClient("unprocessed-images"), Times.Once);
         #endregion
@@ -120,6 +120,9 @@ public class BlobServiceTests
         mockBlobContainerClient.Setup(container => container.GetBlobClient(blobName))
                                .Returns(mockBlobClient.Object);
 
+        mockBlobContainerClient.Setup(client => client.ExistsAsync(default))
+                                .ReturnsAsync(Response.FromValue(true, Mock.Of<Response>()));
+
         mockBlobClient.Setup(blob => blob.UploadAsync(It.IsAny<Stream>(), true, default))
                       .ReturnsAsync(Response.FromValue(Mock.Of<BlobContentInfo>(), Mock.Of<Response>()));
         #endregion
@@ -139,7 +142,7 @@ public class BlobServiceTests
     [InlineData([null, "blob-file.txt"])]
     [InlineData(["unprocessed-image", ""])]
     [InlineData(["unprocessed-image", null])]
-    public async Task UploadBlob_WithValidInputs_ShouldThrowArgumentException(string containerName, string blobName)
+    public async Task UploadBlob_WithInValidInputs_ShouldThrowArgumentException(string containerName, string blobName)
     {
         #region Arrange
         Mock<BlobContainerClient> mockBlobContainerClient = new Mock<BlobContainerClient>();

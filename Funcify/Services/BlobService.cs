@@ -13,7 +13,7 @@ public class BlobService : IBlobService {
         _blobServiceClient = blobServiceClient;
     }
 
-    public async Task<BlobContainerClient> CreateContainer(string containerName)
+    public async Task<BlobContainerClient> GetContainer(string containerName)
     {
         if (string.IsNullOrEmpty(containerName))
             throw new ArgumentException(nameof(containerName));
@@ -27,8 +27,24 @@ public class BlobService : IBlobService {
         return blobContainerClient;
     }
 
-    public Task<Response<BlobContentInfo>> UploadBlob(string containerName, string blobName, dynamic data)
+    public async Task<Response<BlobContentInfo>> UploadBlob(string containerName, string blobName, dynamic data)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(containerName))
+            throw new ArgumentException(nameof(containerName));
+
+        if (string.IsNullOrEmpty(blobName))
+            throw new ArgumentException(nameof(blobName));
+
+        if (data == null) 
+            throw new ArgumentException(nameof(data));
+
+        BlobContainerClient blobContainerClient = await GetContainer(containerName);
+
+        BlobClient blobClient = blobContainerClient.GetBlobClient(blobName);
+
+        Console.WriteLine("Uploading to Blob storage as blob:\n\t {0}\n", blobClient.Uri);
+
+        return await blobClient.UploadAsync(data, true);
+
     }
 }
