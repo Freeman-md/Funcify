@@ -31,12 +31,14 @@ public class ProductProcessingFunctionTest
     }
 
     [Fact]
-    public async Task Run_ValidProductData_ReturnsOkResult()
+    public async Task Run_WithValidProductData_AsJsonContent_ReturnsOkResult()
     {
         #region Arrange
         var product = new ProductBuilder().Build();
         var jsonProduct = JsonConvert.SerializeObject(product);
         var request = new DefaultHttpContext().Request;
+
+        request.ContentType = "application/json";
         request.Body = new MemoryStream(Encoding.UTF8.GetBytes(jsonProduct));
         request.ContentLength = request.Body.Length;
         #endregion
@@ -47,6 +49,28 @@ public class ProductProcessingFunctionTest
 
         #region Assert
         Assert.IsType<OkObjectResult>(result);
+        #endregion
+    }
+
+    [Fact]
+    public async Task Run_WithValidProductData_AsNullContentType_ReturnsBadRequest()
+    {
+        #region Arrange
+        var product = new ProductBuilder().Build();
+        var jsonProduct = JsonConvert.SerializeObject(product);
+        var request = new DefaultHttpContext().Request;
+
+        request.ContentType = null;
+        request.Body = new MemoryStream(Encoding.UTF8.GetBytes(jsonProduct));
+        request.ContentLength = request.Body.Length;
+        #endregion
+
+        #region Act
+        var result = await _function.Run(request);
+        #endregion
+
+        #region Assert
+        Assert.IsType<BadRequestObjectResult>(result);
         #endregion
     }
 
