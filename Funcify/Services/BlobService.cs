@@ -27,7 +27,7 @@ public class BlobService : IBlobService {
         return blobContainerClient;
     }
 
-    public Task<Response<BlobContentInfo>> UploadBlobToContainer(string fileName, string localFilePath)
+    public Task<Response<BlobContentInfo>> UploadBlob(string containerName, string blobName, dynamic data)
     {
         throw new NotImplementedException();
     }
