@@ -30,19 +30,19 @@ public class UploadImageTests
                 It.IsAny<string>(),
                 It.IsAny<Stream>()
             ))
-            .ReturnsAsync(Response.FromValue(Mock.Of<BlobContentInfo>(), Mock.Of<Response>()));
+            .ReturnsAsync(Response.FromValue("", Mock.Of<Response>()));
         #endregion
 
         #region Act
-        BlobContentInfo blob;
+        string blobUri;
         using (var stream = new MemoryStream())
         {
-            blob = await _uploadImage.Invoke("Container", "File", stream);
+            blobUri = await _uploadImage.Invoke("Container", "File", stream);
         }
         #endregion
 
         #region Assert
-        Assert.NotNull(blob);
+        Assert.NotNull(blobUri);
         #endregion
     }
 

@@ -7,5 +7,5 @@ namespace Funcify.Contracts.Services;
 public interface IBlobService {
     public Task<BlobContainerClient> GetContainer(string containerName); 
 
-    public Task<Response<BlobContentInfo>> UploadBlob(string containerName, string blobName, dynamic data);
+    public Task<string> UploadBlob(string containerName, string blobName, Stream data);
 }

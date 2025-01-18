@@ -24,6 +24,8 @@ var host = new HostBuilder()
         );
         
         services.AddSingleton<CreateProduct>();
+        services.AddSingleton<UploadImage>();
+        services.AddSingleton<UpdateProduct>();
     })
     .Build();
 

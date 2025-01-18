@@ -77,16 +77,6 @@ public class BlobServiceTests
         #endregion
     }
 
-    [Theory]
-    [InlineData([""])]
-    [InlineData([null])]
-    public async Task GetContainer_WithInvalidContainerName_ShouldThrowArgumentException(string containerName)
-    {
-        #region Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(async () => await _blobService.GetContainer(containerName));
-        #endregion
-    }
-
     [Fact]
     public async Task GetContainer_WhenBlobServiceClientThrows_ShouldPropagateException()
     {
@@ -111,6 +101,8 @@ public class BlobServiceTests
         var blobName = "valid-blob.txt";
         var data = new MemoryStream(Encoding.UTF8.GetBytes("Sample blob data"));
 
+        var blobUri = new Uri($"https://mockstorageaccount.blob.core.windows.net/{containerName}/{blobName}");
+
         var mockBlobContainerClient = new Mock<BlobContainerClient>();
         var mockBlobClient = new Mock<BlobClient>();
 
@@ -123,55 +115,21 @@ public class BlobServiceTests
         mockBlobContainerClient.Setup(client => client.ExistsAsync(default))
                                 .ReturnsAsync(Response.FromValue(true, Mock.Of<Response>()));
 
+        mockBlobClient.Setup(client => client.Uri)
+            .Returns(blobUri);
+
         mockBlobClient.Setup(blob => blob.UploadAsync(It.IsAny<Stream>(), true, default))
                       .ReturnsAsync(Response.FromValue(Mock.Of<BlobContentInfo>(), Mock.Of<Response>()));
         #endregion
 
         #region Act
-        await _blobService.UploadBlob(containerName, blobName, data);
+        var result = await _blobService.UploadBlob(containerName, blobName, data);
         #endregion
 
         #region Assert
+        Assert.Equal(blobUri.ToString(), result);
         mockBlobContainerClient.Verify(container => container.GetBlobClient(blobName), Times.Once);
         mockBlobClient.Verify(blob => blob.UploadAsync(data, true, default), Times.Once);
-        #endregion
-    }
-
-    [Theory]
-    [InlineData(["", "blob-file.txt"])]
-    [InlineData([null, "blob-file.txt"])]
-    [InlineData(["unprocessed-image", ""])]
-    [InlineData(["unprocessed-image", null])]
-    public async Task UploadBlob_WithInValidInputs_ShouldThrowArgumentException(string containerName, string blobName)
-    {
-        #region Arrange
-        Mock<BlobContainerClient> mockBlobContainerClient = new Mock<BlobContainerClient>();
-        var data = new MemoryStream(Encoding.UTF8.GetBytes("Sample blob data"));
-        #endregion
-
-        #region Assert
-        await Assert.ThrowsAsync<ArgumentException>(async () => await _blobService.UploadBlob(containerName, blobName, data));
-
-        _mockBlobServiceClient.Verify(service => service.GetBlobContainerClient(containerName), Times.Never);
-        mockBlobContainerClient.Verify(container => container.GetBlobClient(blobName), Times.Never);
-        #endregion
-    }
-
-    [Fact]
-    public async Task UploadBlob_WithEmptyData_ShouldThrowArgumentException()
-    {
-        #region Arrange
-        Mock<BlobContainerClient> mockBlobContainerClient = new Mock<BlobContainerClient>();
-
-        var containerName = "valid-container";
-        var blobName = "valid-blob.txt";
-        #endregion
-
-        #region Assert
-        await Assert.ThrowsAsync<ArgumentException>(async () => await _blobService.UploadBlob(containerName, blobName, null!));
-
-        _mockBlobServiceClient.Verify(service => service.GetBlobContainerClient(containerName), Times.Never);
-        mockBlobContainerClient.Verify(container => container.GetBlobClient(blobName), Times.Never);
         #endregion
     }
 

@@ -13,11 +13,21 @@ namespace Funcify
     {
         private readonly ILogger<ProductProcessingFunction> _logger;
         private readonly CreateProduct _createProductAction;
+        private readonly UploadImage _uploadImageAction;
+        private readonly UpdateProduct _updateProductAction;
 
-        public ProductProcessingFunction(ILogger<ProductProcessingFunction> logger, CreateProduct createProductAction)
+
+        public ProductProcessingFunction(
+            ILogger<ProductProcessingFunction> logger,
+            CreateProduct createProductAction,
+            UploadImage uploadImageAction,
+            UpdateProduct updateProductAction
+        )
         {
             _logger = logger;
             _createProductAction = createProductAction;
+            _uploadImageAction = uploadImageAction;
+            _updateProductAction = updateProductAction;
         }
 
         [Function("ProductProcessingFunction")]
@@ -46,13 +56,30 @@ namespace Funcify
                     }
 
                     //TODO: Handle File Upload
-
-                    productData = new Product
+                    if (form.Files.Count > 0)
                     {
-                        Name = name,
-                        Price = price,
-                        Quantity = quantity,
-                    };
+                        var file = form.Files[0];
+
+                        if (!IsValidImage(file))
+                        {
+                            return new BadRequestObjectResult("Invalid file format. Please upload a valid image.");
+                        }
+
+                        using var stream = file.OpenReadStream();
+                        var blobUri = await _uploadImageAction.Invoke("unprocessed-images", file.FileName, stream);
+
+                        productData = new Product
+                        {
+                            Name = name,
+                            Price = price,
+                            Quantity = quantity,
+                            UnprocessedImageUrl = blobUri
+                        };
+                    }
+                    else
+                    {
+                        return new BadRequestObjectResult("No file uploaded. Please upload an image file.");
+                    }
                 }
                 else if (req.ContentType == "application/json")
                 {
@@ -111,6 +138,13 @@ namespace Funcify
                     StatusCode = StatusCodes.Status500InternalServerError
                 };
             }
+        }
+
+        private bool IsValidImage(IFormFile file)
+        {
+            var permittedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            return !string.IsNullOrEmpty(fileExtension) && permittedExtensions.Contains(fileExtension);
         }
 
     }

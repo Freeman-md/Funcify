@@ -1,4 +1,5 @@
 using System;
+using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Funcify.Contracts.Services;
 using Funcify.Services;
@@ -14,7 +15,7 @@ public class UploadImage
         _blobService = blobService;
     }
 
-    public async Task<BlobContentInfo> Invoke(string containerName, string fileName, Stream fileStream)
+    public async Task<string> Invoke(string containerName, string fileName, Stream fileStream)
     {
         ValidateInputs(containerName, fileName, fileStream);
 
