@@ -8,18 +8,14 @@ public class QueueService : IQueueService
 {
     private readonly QueueClient _queueClient;
 
-    public QueueService(string storageAccountName, string queueName)
+    public QueueService(QueueClient queueClient)
     {
-        string uri = $"https://{storageAccountName}.queue.core.windows.net/{queueName}";
-
-        _queueClient = new QueueClient(
-                new Uri(uri),
-    new DefaultAzureCredential()
-        );
+        _queueClient = queueClient;
     }
 
     public async Task AddMessage(string message)
     {
-        await _queueClient.SendMessageAsync(message);
+
+        throw new NotImplementedException();
     }
 }
