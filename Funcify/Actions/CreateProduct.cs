@@ -20,8 +20,6 @@ public class CreateProduct
     {
         ValidateProduct(product);
 
-        Console.WriteLine(product);
-
         Product createdProduct = await _cosmosDBService.CreateItem<Product>(_databaseName, _containerName, product);
 
         return createdProduct;
