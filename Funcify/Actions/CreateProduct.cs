@@ -11,7 +11,7 @@ public class CreateProduct
     public CreateProduct(ICosmosDBService cosmosDBService)
     {
         _cosmosDBService = cosmosDBService;
-        
+
         _databaseName = "Funcify";
         _containerName = "Products";
     }
@@ -32,9 +32,12 @@ public class CreateProduct
         if (product == null)
             throw new ArgumentNullException(nameof(product));
 
+        if (string.IsNullOrWhiteSpace(product.id))
+            throw new ArgumentException("Product ID cannot be null or empty.", nameof(product.id));
+
         if (string.IsNullOrWhiteSpace(product.Name))
             throw new ArgumentException("Product name cannot be null or empty.", nameof(product.Name));
-            
+
         if (product.Price <= 0)
             throw new ArgumentException("Product price must be greater than zero.", nameof(product.Price));
 
