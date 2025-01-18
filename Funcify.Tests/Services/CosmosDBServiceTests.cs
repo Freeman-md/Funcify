@@ -281,5 +281,81 @@ namespace Funcify.Tests.Services
             );
             #endregion
         }
+
+        [Fact]
+        public async Task UpdateItem_WithValidItem_ShouldUpdateItem()
+        {
+            #region Arrange
+            Product product = new ProductBuilder().Build();
+            var (_, mockContainer) = SetupValidDatabaseAndContainer();
+
+            var mockItemResponse = Mock.Of<ItemResponse<Product>>(response => response.Resource == product);
+
+            mockContainer
+                .Setup(c => c.UpsertItemAsync(
+                    product,
+                    null,
+                    null,
+                    default
+                ))
+                .ReturnsAsync(mockItemResponse);
+            #endregion
+
+            #region Act
+            Product updatedProduct = await _cosmosDBService.UpdateItem<Product>("Database", "Container", product);
+            #endregion
+
+            #region Assert
+            Assert.NotNull(updatedProduct);
+            Assert.Equal(product.id, updatedProduct.id);
+            Assert.Equal(product.Name, updatedProduct.Name);
+            Assert.Equal(product.Price, updatedProduct.Price);
+            Assert.Equal(product.Quantity, updatedProduct.Quantity);
+            #endregion
+        }
+
+
+        [Fact]
+        public async Task UpdateItem_WithNullItem_ShouldThrowArgumentNullException()
+        {
+            #region Act & Assert
+            await Assert.ThrowsAsync<ArgumentNullException>(async () =>
+                await _cosmosDBService.UpdateItem<Product>("Database", "Container", null!)
+            );
+            #endregion
+        }
+
+        [Fact]
+        public async Task UpdateItem_WhenUpsertFails_ShouldThrowCosmosException()
+        {
+            #region Arrange
+            Product product = new ProductBuilder().Build();
+            var (_, mockContainer) = SetupValidDatabaseAndContainer();
+
+            mockContainer
+                .Setup(c => c.UpsertItemAsync(
+                    product,
+                    null,
+                    null,
+                    default
+                ))
+                .ThrowsAsync(
+                    new CosmosException(
+                        "Item upsert failed",
+                        System.Net.HttpStatusCode.InternalServerError,
+                        0,
+                        string.Empty,
+                        0
+                    )
+                );
+            #endregion
+
+            #region Act & Assert
+            await Assert.ThrowsAsync<CosmosException>(async () =>
+                await _cosmosDBService.UpdateItem<Product>("Database", "Container", product)
+            );
+            #endregion
+        }
+
     }
 }
