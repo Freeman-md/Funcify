@@ -22,10 +22,11 @@ var host = new HostBuilder()
         services.AddAzureServices(
             context.Configuration
         );
-        
+
         services.AddSingleton<CreateProduct>();
         services.AddSingleton<UploadImage>();
         services.AddSingleton<UpdateProduct>();
+        services.AddSingleton<EnqueueTask>();
     })
     .Build();
 

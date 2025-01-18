@@ -15,19 +15,22 @@ namespace Funcify
         private readonly CreateProduct _createProductAction;
         private readonly UploadImage _uploadImageAction;
         private readonly UpdateProduct _updateProductAction;
+        private readonly EnqueueTask _enqueueTaskAction;
 
 
         public ProductProcessingFunction(
             ILogger<ProductProcessingFunction> logger,
             CreateProduct createProductAction,
             UploadImage uploadImageAction,
-            UpdateProduct updateProductAction
+            UpdateProduct updateProductAction,
+            EnqueueTask enqueueTaskAction
         )
         {
             _logger = logger;
             _createProductAction = createProductAction;
             _uploadImageAction = uploadImageAction;
             _updateProductAction = updateProductAction;
+            _enqueueTaskAction = enqueueTaskAction;
         }
 
         [Function("ProductProcessingFunction")]
@@ -100,6 +103,20 @@ namespace Funcify
                 Product createdProduct = await _createProductAction.Invoke(productData);
 
                 _logger.LogInformation($"Product created successfully: {createdProduct}");
+
+                if (createdProduct != null && !string.IsNullOrEmpty(createdProduct.UnprocessedImageUrl))
+                {
+                    string taskMessage = JsonConvert.SerializeObject(new
+                    {
+                        ProductId = productData.id,
+                        ImageUrl = productData.UnprocessedImageUrl
+                    });
+
+                    await _enqueueTaskAction.Invoke(taskMessage);
+                    _logger.LogInformation($"Enqueued task for processing image: {productData.UnprocessedImageUrl}");
+                }
+
+
                 return new OkObjectResult(new
                 {
                     Message = "Product created successfully",
