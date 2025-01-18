@@ -27,7 +27,7 @@ public async Task AddMessage_WithValidMessage_ShouldSendMessage()
     var mockSendReceipt = QueuesModelFactory.SendReceipt("messageId", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, "popReceipt", DateTimeOffset.UtcNow);
     var mockResponse = Response.FromValue(mockSendReceipt, Mock.Of<Response>());
 
-    _mockQueueClient.Setup(client => client.SendMessageAsync(validMessage, default))
+    _mockQueueClient.Setup(client => client.SendMessageAsync(validMessage))
                     .ReturnsAsync(mockResponse);
     #endregion
 
@@ -36,7 +36,7 @@ public async Task AddMessage_WithValidMessage_ShouldSendMessage()
     #endregion
 
     #region Assert
-    _mockQueueClient.Verify(client => client.SendMessageAsync(validMessage, default), Times.Once);
+    _mockQueueClient.Verify(client => client.SendMessageAsync(validMessage), Times.Once);
     #endregion
 }
 

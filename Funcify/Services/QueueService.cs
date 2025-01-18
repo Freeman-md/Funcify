@@ -15,7 +15,11 @@ public class QueueService : IQueueService
 
     public async Task AddMessage(string message)
     {
+        if (string.IsNullOrEmpty(message))
+        {
+            throw new ArgumentException("Message cannot be null or empty.", nameof(message));
+        }
 
-        throw new NotImplementedException();
+        await _queueClient.SendMessageAsync(message);
     }
 }
