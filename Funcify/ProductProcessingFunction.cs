@@ -55,7 +55,6 @@ namespace Funcify
                         return new BadRequestObjectResult("Invalid product data in form submission.");
                     }
 
-                    //TODO: Handle File Upload
                     if (form.Files.Count > 0)
                     {
                         var file = form.Files[0];
