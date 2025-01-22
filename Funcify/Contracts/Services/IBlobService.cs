@@ -8,4 +8,6 @@ public interface IBlobService {
     public Task<BlobContainerClient> GetContainer(string containerName); 
 
     public Task<string> UploadBlob(string containerName, string blobName, Stream data);
+
+    public Task<string> DownloadBlob(string containerName, string blobName);
 }

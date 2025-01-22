@@ -133,4 +133,91 @@ public class BlobServiceTests
         #endregion
     }
 
+    [Fact]
+    public async Task DownloadBlobToFile_WithValidInputs_ReturnsFilePath()
+    {
+        #region Arrange
+        string containerName = "unprocessed-images";
+        string blobName = "valid-image.jpg";
+
+        string downloadPath = Path.Combine(Directory.GetCurrentDirectory(), containerName, blobName);
+
+        Mock<BlobContainerClient> _mockBlobContainerClient = new Mock<BlobContainerClient>();
+        Mock<BlobClient> _mockBlobClient = new Mock<BlobClient>();
+
+        _mockBlobServiceClient
+            .Setup(client => client.GetBlobContainerClient(containerName))
+            .Returns(_mockBlobContainerClient.Object);
+
+        _mockBlobContainerClient
+            .Setup(client => client.GetBlobClient(blobName))
+            .Returns(_mockBlobClient.Object);
+
+        _mockBlobClient.Setup(client => client.ExistsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Response.FromValue(true, Mock.Of<Response>()));
+
+        _mockBlobClient.Setup(client => client.DownloadToAsync(downloadPath, default))
+            .ReturnsAsync(Response.FromValue(Mock.Of<Response>(), Mock.Of<Response>()));
+        #endregion
+
+        #region Act
+        string result = await _blobService.DownloadBlob(containerName, blobName);
+        #endregion
+
+        #region Assert
+        Assert.Equal(downloadPath, result);
+
+        _mockBlobServiceClient.Verify(client => client.GetBlobContainerClient(containerName), Times.Once);
+        _mockBlobContainerClient.Verify(client => client.GetBlobClient(blobName), Times.Once);
+        _mockBlobClient.Verify(client => client.DownloadToAsync(downloadPath, default), Times.Once);
+        #endregion
+    }
+
+    [Theory]
+    [InlineData("", "valid-image.jpg")]
+    [InlineData(null, "valid-image.jpg")]
+    [InlineData("unprocessed-images", null)]
+    [InlineData("unprocessed-images", "")]
+    public async Task DownloadBlobToFile_WithInvalidContainer_ThrowsException(string containerName, string blobName)
+    {
+        #region Arrange
+        _mockBlobServiceClient
+            .Setup(client => client.GetBlobContainerClient(containerName))
+            .Throws(new ArgumentException());
+        #endregion
+
+        #region Act & Assert
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _blobService.DownloadBlob(containerName, blobName));
+        #endregion
+    }
+
+    [Fact]
+public async Task DownloadBlobToFile_WithNonExistentBlob_ThrowsException() {
+    #region Arrange
+        string containerName = "unprocessed-images";
+        string blobName = "nonexistent-image.jpg";
+
+        string downloadPath = Path.Combine(Directory.GetCurrentDirectory(), containerName, blobName);
+
+        Mock<BlobContainerClient> _mockBlobContainerClient = new Mock<BlobContainerClient>();
+        Mock<BlobClient> _mockBlobClient = new Mock<BlobClient>();
+
+        _mockBlobServiceClient
+            .Setup(client => client.GetBlobContainerClient(containerName))
+            .Returns(_mockBlobContainerClient.Object);
+
+        _mockBlobContainerClient
+            .Setup(client => client.GetBlobClient(blobName))
+            .Returns(_mockBlobClient.Object);
+
+        _mockBlobClient.Setup(client => client.ExistsAsync(default))
+            .ReturnsAsync(Response.FromValue(false, Mock.Of<Response>()));
+    #endregion
+
+    #region Act & Assert
+        var exception = await Assert.ThrowsAsync<FileNotFoundException>(() => _blobService.DownloadBlob(containerName, blobName));
+    #endregion
+}
+
+
 }

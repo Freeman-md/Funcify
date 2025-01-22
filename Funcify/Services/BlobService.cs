@@ -35,6 +35,9 @@ public class BlobService : IBlobService {
         await blobClient.UploadAsync(data, true);
 
         return blobClient.Uri.ToString();
+    }
 
+    public async Task<string> DownloadBlob(string containerName, string blobName) {
+        throw new NotImplementedException();
     }
 }
