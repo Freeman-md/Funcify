@@ -19,13 +19,13 @@ public class ImageResize
 
         string downloadPath = await DownloadBlob(containerName, blobName);
 
-        await ResizeImage(downloadPath);
+        // await ResizeImage(downloadPath);
 
-        await UploadResizedImage(containerName, blobName, downloadPath);
+        // await UploadResizedImage(containerName, blobName, downloadPath);
 
         // await UpdateProduct(itemId, downloadPath);
 
-        DeleteTempFile(downloadPath);
+        // DeleteTempFile(downloadPath);
     }
 
     // Private methods for each action step

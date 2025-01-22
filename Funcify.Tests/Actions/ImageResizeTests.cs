@@ -27,19 +27,16 @@ public class ImageResizeTests
 
     #region Helper Methods
 
-    private (Mock<BlobService> MockBlobService, Mock<CosmosDBService> MockCosmosDBService) SetupServices()
+    private (Mock<IBlobService> MockBlobService, Mock<ICosmosDBService> MockCosmosDBService) SetupServices()
     {
-        var mockBlobService = new Mock<BlobService>();
-        var mockCosmosDBService = new Mock<CosmosDBService>();
-
-        mockBlobService.Setup(service => service.DownloadBlob(It.IsAny<string>(), It.IsAny<string>()))
+        _blobService.Setup(service => service.DownloadBlob(It.IsAny<string>(), It.IsAny<string>()))
         .ReturnsAsync(It.IsAny<string>());
 
-        mockCosmosDBService.Setup(service => service.UpdateItem(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>()))
+        _cosmosDBService.Setup(service => service.UpdateItem(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>()))
         .ReturnsAsync(It.IsAny<object>());
 
 
-        return (mockBlobService, mockCosmosDBService);
+        return (_blobService, _cosmosDBService);
     }
 
     #endregion
@@ -53,6 +50,22 @@ public class ImageResizeTests
     {
         #region Arrange
         await Assert.ThrowsAsync<ArgumentException>(async () => await _imageResize.Invoke(containerName, blobName));
+        #endregion
+    }
+
+    [Fact]
+    public async Task ImageResize_WhenValidInputsAreProvided_ShouldCallDownloadBlobOnce()
+    {
+        #region Arrange
+        var (mockBlobService, _) = SetupServices();
+        #endregion
+
+        #region Act
+        await _imageResize.Invoke("Container", "Blob");
+        #endregion
+
+        #region Assert
+        mockBlobService.Verify(service => service.DownloadBlob("Container", "Blob"), Times.Once);
         #endregion
     }
 
