@@ -15,7 +15,7 @@ namespace Funcify
         }
 
         [Function(nameof(ResizeImageFunction))]
-        public void Run([QueueTrigger("funcifyqueue", Connection = "AzureQueueStorage")] QueueMessage message)
+        public void Run([QueueTrigger("funcifyqueue", Connection = "Storage")] QueueMessage message)
         {
             _logger.LogInformation($"C# Queue trigger function processed: {message.MessageText}");
         }
