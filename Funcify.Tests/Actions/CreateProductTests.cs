@@ -1,6 +1,7 @@
 using Funcify.Actions;
 using Funcify.Contracts.Services;
 using Funcify.Tests.Builders;
+using Funcify.Models;
 using Moq;
 
 namespace Funcify.Tests.Actions;

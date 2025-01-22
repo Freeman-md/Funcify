@@ -2,6 +2,8 @@ using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+namespace Funcify.Models;
+
 public class Product
 {
     public string id { get; set; } = Guid.NewGuid().ToString();

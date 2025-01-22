@@ -58,7 +58,7 @@ public class ProductProcessingFunctionTest
         #endregion
 
         #region Assert
-        Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<ObjectResult>(result);
         #endregion
     }
 

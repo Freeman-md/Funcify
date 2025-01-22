@@ -47,9 +47,9 @@ public class UploadImageTests
     }
 
     [Fact]
-    public async Task UploadImage_WithNullFileData_ShouldThrowArgumentException() {
+    public async Task UploadImage_WithNullFileData_ShouldThrowArgumentNullException() {
         #region Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(async () => await _uploadImage.Invoke("Container", "Filename", null!));
+            await Assert.ThrowsAsync<ArgumentNullException>(async () => await _uploadImage.Invoke("Container", "Filename", null!));
         #endregion
     }
 

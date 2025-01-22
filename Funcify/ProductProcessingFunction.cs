@@ -1,11 +1,15 @@
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Logging;
+using Funcify.Actions;
+using Funcify.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Funcify.Contracts.Services;
-using Funcify.Actions;
-using Newtonsoft.Json;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Funcify
 {
@@ -17,14 +21,12 @@ namespace Funcify
         private readonly UpdateProduct _updateProductAction;
         private readonly EnqueueTask _enqueueTaskAction;
 
-
         public ProductProcessingFunction(
             ILogger<ProductProcessingFunction> logger,
             CreateProduct createProductAction,
             UploadImage uploadImageAction,
             UpdateProduct updateProductAction,
-            EnqueueTask enqueueTaskAction
-        )
+            EnqueueTask enqueueTaskAction)
         {
             _logger = logger;
             _createProductAction = createProductAction;
@@ -40,8 +42,9 @@ namespace Funcify
             {
                 _logger.LogInformation("Processing request to create a product.");
 
-                Product? productData = null;
+                Product productData = null;
 
+                // Handling form-data
                 if (req.HasFormContentType)
                 {
                     _logger.LogInformation("Processing form-data request.");
@@ -68,10 +71,12 @@ namespace Funcify
                         }
 
                         using var stream = file.OpenReadStream();
-                        var blobUri = await _uploadImageAction.Invoke("unprocessed-images", file.FileName, stream);
+                        string blobUri = await _uploadImageAction.Invoke("unprocessed-images", file.FileName, stream);
 
                         productData = new Product
                         {
+                            // If ID is not provided by the client, generate a GUID
+                            id = Guid.NewGuid().ToString(),
                             Name = name,
                             Price = price,
                             Quantity = quantity,
@@ -86,9 +91,11 @@ namespace Funcify
                 }
                 else if (req.ContentType == "application/json")
                 {
+                    // Handling JSON
                     _logger.LogInformation("Processing JSON request.");
 
-                    string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+                    using var reader = new StreamReader(req.Body);
+                    string requestBody = await reader.ReadToEndAsync();
                     productData = JsonConvert.DeserializeObject<Product>(requestBody);
 
                     if (productData == null)
@@ -102,10 +109,10 @@ namespace Funcify
                 }
 
                 Product createdProduct = await _createProductAction.Invoke(productData);
+                _logger.LogInformation($"Product created successfully: {createdProduct?.id}");
 
-                _logger.LogInformation($"Product created successfully: {createdProduct}");
-
-                if (createdProduct != null && !string.IsNullOrEmpty(createdProduct.UnprocessedImageUrl))
+                // If there's an unprocessed image URL, enqueue image processing
+                if (!string.IsNullOrEmpty(createdProduct.UnprocessedImageUrl))
                 {
                     var processingMessage = new ProductImageProcessingMessage(
                         createdProduct.id,
@@ -113,12 +120,9 @@ namespace Funcify
                         createdProduct.FileName
                     );
 
-                    string taskMessage = JsonConvert.SerializeObject(processingMessage);
-
-                    await _enqueueTaskAction.Invoke(taskMessage);
-                    _logger.LogInformation($"Enqueued task for processing image: {productData.UnprocessedImageUrl}");
+                    await _enqueueTaskAction.Invoke(JsonConvert.SerializeObject(processingMessage));
+                    _logger.LogInformation($"Enqueued task for processing image: {createdProduct.UnprocessedImageUrl}");
                 }
-
 
                 return new OkObjectResult(new
                 {
@@ -165,6 +169,5 @@ namespace Funcify
             var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
             return !string.IsNullOrEmpty(fileExtension) && permittedExtensions.Contains(fileExtension);
         }
-
     }
 }

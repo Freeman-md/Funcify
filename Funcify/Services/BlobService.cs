@@ -1,68 +1,82 @@
 using Azure;
-using Azure.Identity;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Funcify.Contracts.Services;
+using System;
+using System.IO;
+using System.Threading.Tasks;
 
-namespace Funcify.Services;
-
-public class BlobService : IBlobService {
-    private readonly BlobServiceClient _blobServiceClient;
-
-    public BlobService(BlobServiceClient blobServiceClient) {
-        _blobServiceClient = blobServiceClient;
-    }
-
-    public async Task<BlobContainerClient> GetContainer(string containerName)
+namespace Funcify.Services
+{
+    public class BlobService : IBlobService
     {
-        BlobContainerClient blobContainerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+        private readonly BlobServiceClient _blobServiceClient;
 
-        if (!await blobContainerClient.ExistsAsync()) {
-            await blobContainerClient.CreateIfNotExistsAsync();
+        public BlobService(BlobServiceClient blobServiceClient)
+        {
+            _blobServiceClient = blobServiceClient;
         }
 
-        return blobContainerClient;
-    }
+        public async Task<BlobContainerClient> GetContainer(string containerName)
+        {
+            BlobContainerClient containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
 
-    public async Task<string> UploadBlob(string containerName, string blobName, Stream data)
-    {
-        BlobContainerClient blobContainerClient = await GetContainer(containerName);
+            // Create container if it doesn't exist
+            if (!await containerClient.ExistsAsync())
+            {
+                await containerClient.CreateIfNotExistsAsync();
+            }
 
-        BlobClient blobClient = blobContainerClient.GetBlobClient(blobName);
-
-        Console.WriteLine("Uploading to Blob storage as blob:\n\t {0}\n", blobClient.Uri);
-
-        await blobClient.UploadAsync(data, true);
-
-        return blobClient.Uri.ToString();
-    }
-
-    public async Task<string> DownloadBlob(string unprocessedBlobsContainerName, string blobName) {
-        ValidateInputs(unprocessedBlobsContainerName, blobName);
-
-        string downloadPath = Path.Combine(Directory.GetCurrentDirectory(), unprocessedBlobsContainerName, Path.GetFileName(blobName));
-
-        Directory.CreateDirectory(Path.GetDirectoryName(downloadPath));
-
-        BlobContainerClient blobContainerClient = await GetContainer(unprocessedBlobsContainerName);
-        BlobClient blobClient = blobContainerClient.GetBlobClient(blobName);
-
-        if (!await blobClient.ExistsAsync()) {
-            throw new FileNotFoundException();
+            return containerClient;
         }
 
-        await blobClient.DownloadToAsync(downloadPath);
+        public async Task<string> UploadBlob(string containerName, string blobName, Stream data)
+        {
+            BlobContainerClient containerClient = await GetContainer(containerName);
+            BlobClient blobClient = containerClient.GetBlobClient(blobName);
 
-        return downloadPath;
-    }
+            Console.WriteLine("Uploading to Blob storage as blob:\n\t {0}", blobClient.Uri);
 
-    private void ValidateInputs(string containerName, string blobUri) {
-        if (string.IsNullOrEmpty(containerName)) {
-            throw new ArgumentException();
+            await blobClient.UploadAsync(data, overwrite: true);
+
+            return blobClient.Uri.ToString();
         }
 
-        if (string.IsNullOrEmpty(blobUri)) {
-            throw new ArgumentException();
+        public async Task<string> DownloadBlob(string containerName, string blobName)
+        {
+            ValidateInputs(containerName, blobName);
+
+            string downloadPath = Path.Combine(Directory.GetCurrentDirectory(), containerName, Path.GetFileName(blobName));
+            Directory.CreateDirectory(Path.GetDirectoryName(downloadPath));
+
+            BlobContainerClient containerClient = await GetContainer(containerName);
+            BlobClient blobClient = containerClient.GetBlobClient(blobName);
+
+            if (!await blobClient.ExistsAsync())
+            {
+                throw new FileNotFoundException($"Blob '{blobName}' not found in container '{containerName}'.");
+            }
+
+            await blobClient.DownloadToAsync(downloadPath);
+
+            return downloadPath;
         }
+
+        #region Private Helper
+
+        private void ValidateInputs(string containerName, string blobName)
+        {
+            if (string.IsNullOrWhiteSpace(containerName))
+            {
+                throw new ArgumentException("Container name cannot be null or empty.", nameof(containerName));
+            }
+
+            if (string.IsNullOrWhiteSpace(blobName))
+            {
+                throw new ArgumentException("Blob name cannot be null or empty.", nameof(blobName));
+            }
+        }
+
+        #endregion
     }
 }

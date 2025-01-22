@@ -3,6 +3,7 @@ using Funcify.Services;
 using Funcify.Tests.Builders;
 using Microsoft.Azure.Cosmos;
 using Moq;
+using Funcify.Models;
 using Xunit;
 
 namespace Funcify.Tests.Services

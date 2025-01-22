@@ -1,110 +1,106 @@
-using System;
 using Funcify.Contracts.Services;
+using Funcify.Models;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 
-namespace Funcify.Actions;
-
-public class ImageResize
+namespace Funcify.Actions
 {
-    private readonly IBlobService _blobService;
-    private readonly ICosmosDBService _cosmosDBService;
-    private readonly string _databaseName;
-    private readonly string _databaseContainerName;
-    private readonly string _unprocessedBlobsContainerName;
-    public ImageResize(IBlobService blobService, ICosmosDBService cosmosDBService)
+    public class ImageResize
     {
-        _blobService = blobService;
-        _cosmosDBService = cosmosDBService;
+        private readonly IBlobService _blobService;
+        private readonly ICosmosDBService _cosmosDBService;
 
-        _databaseName = "Funcify";
-        _databaseContainerName = "Products";
+        private const string DatabaseName = "Funcify";
+        private const string ContainerName = "Products";
+        private const string UnprocessedBlobsContainer = "unprocessed-images";
 
-        _unprocessedBlobsContainerName = "unprocessed-images";
-    }
-
-    public async Task Invoke(string processedBlobsContainerName, string blobName)
-    {
-        await this.Invoke(processedBlobsContainerName, "", "", blobName);
-    }
-
-    public async Task Invoke(string processedBlobsContainerName, string itemId, string partitionKey, string blobName)
-    {
-        ValidateInputs(processedBlobsContainerName, blobName);
-
-        string downloadPath = await DownloadBlob(_unprocessedBlobsContainerName, blobName);
-
-        string uploadPath = await ResizeImage(downloadPath);
-
-        string uploadedBlobUri = await UploadResizedImage(processedBlobsContainerName, blobName, uploadPath);
-
-        await UpdateProductImageUrl(itemId, partitionKey, uploadedBlobUri);
-
-        DeleteTempFile(uploadPath, downloadPath);
-    }
-
-    // Private methods for each action step
-    private void ValidateInputs(string processedBlobsContainerName, string blobName)
-    {
-        if (string.IsNullOrEmpty(processedBlobsContainerName))
+        public ImageResize(IBlobService blobService, ICosmosDBService cosmosDBService)
         {
-            throw new ArgumentException();
+            _blobService = blobService;
+            _cosmosDBService = cosmosDBService;
         }
 
-        if (string.IsNullOrEmpty(blobName))
+        public async Task Invoke(string processedBlobsContainerName, string blobName)
         {
-            throw new ArgumentException();
+            await Invoke(processedBlobsContainerName, string.Empty, string.Empty, blobName);
         }
-    }
 
-    private async Task<string> DownloadBlob(string unprocessedBlobsContainerName, string blobName)
-    {
-        return await _blobService.DownloadBlob(unprocessedBlobsContainerName, blobName);
-    }
-
-    public async Task<string> ResizeImage(string downloadPath)
-    {
-        using (Image image = Image.Load(downloadPath))
+        public async Task Invoke(string processedBlobsContainerName, string itemId, string partitionKey, string blobName)
         {
-            image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
+            ValidateInputs(processedBlobsContainerName, blobName);
 
-            string uploadPath = Path.Combine(Path.GetDirectoryName(downloadPath)!, "resized_" + Path.GetFileName(downloadPath));
+            string downloadPath = await _blobService.DownloadBlob(UnprocessedBlobsContainer, blobName);
 
-            await image.SaveAsync(uploadPath);
+            string resizedImagePath = await ResizeImage(downloadPath);
 
-            return uploadPath;
+            // Re-open the resized file to upload
+            using var resizedStream = File.OpenRead(resizedImagePath);
+            string uploadedBlobUri = await _blobService.UploadBlob(processedBlobsContainerName, blobName, resizedStream);
+
+            // If we have valid itemId and partitionKey, update Cosmos DB record
+            await UpdateProductImageUrl(itemId, partitionKey, uploadedBlobUri);
+
+            DeleteTempFile(resizedImagePath);
+            DeleteTempFile(downloadPath);
         }
-    }
 
-    private async Task<string> UploadResizedImage(string processedBlobsContainerName, string blobName, string uploadPath)
-    {
-        using (FileStream fileStream = new FileStream(uploadPath, FileMode.Open))
+        #region Private Helper Methods
+
+        private void ValidateInputs(string processedBlobsContainerName, string blobName)
         {
-            return await _blobService.UploadBlob(processedBlobsContainerName, blobName, fileStream);
-        }
-    }
+            if (string.IsNullOrWhiteSpace(processedBlobsContainerName))
+                throw new ArgumentException("Processed container name cannot be null or empty.", nameof(processedBlobsContainerName));
 
-    private async Task UpdateProductImageUrl(string imageId, string partitionKey, string newImageUrl)
-    {
-        // Build a dictionary of fields to update
-        var updates = new Dictionary<string, object>
+            if (string.IsNullOrWhiteSpace(blobName))
+                throw new ArgumentException("Blob name cannot be null or empty.", nameof(blobName));
+        }
+
+        private async Task<string> ResizeImage(string imagePath)
+        {
+            using (Image image = Image.Load(imagePath))
             {
-                { "ProcessedImageUrl", newImageUrl }
-            };
+                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
 
-        await _cosmosDBService.UpdateItemFields<Product>(_databaseName, _databaseContainerName, imageId, partitionKey, updates);
-    }
+                string resizedFileName = "resized_" + Path.GetFileName(imagePath);
+                string resizedImagePath = Path.Combine(Path.GetDirectoryName(imagePath) ?? string.Empty, resizedFileName);
 
-    private void DeleteTempFile(string uploadPath, string downloadPath)
-    {
-        if (File.Exists(uploadPath))
-        {
-            File.Delete(uploadPath);
+                await image.SaveAsync(resizedImagePath);
+                return resizedImagePath;
+            }
         }
 
-        if (File.Exists(downloadPath))
+        private async Task UpdateProductImageUrl(string itemId, string partitionKey, string newImageUrl)
         {
-            File.Delete(downloadPath);
+            // Only update if we actually have an ID and partition key
+            if (!string.IsNullOrEmpty(itemId) && !string.IsNullOrEmpty(partitionKey))
+            {
+                var updates = new Dictionary<string, object>
+                {
+                    { nameof(Product.ProcessedImageUrl), newImageUrl }
+                };
+
+                await _cosmosDBService.UpdateItemFields<Product>(
+                    DatabaseName,
+                    ContainerName,
+                    itemId,
+                    partitionKey,
+                    updates
+                );
+            }
         }
+
+        private void DeleteTempFile(string path)
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+
+        #endregion
     }
 }

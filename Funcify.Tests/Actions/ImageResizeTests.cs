@@ -76,17 +76,17 @@ namespace Funcify.Tests.Actions
         public async Task ImageResize_WithValidInputs_ShouldCallNecessaryServiceMethods()
         {
             #region Arrange
-            var (mockBlobService, MockCosmosDBService) = SetupServices();
+            var (mockBlobService, mockCosmosDBService) = SetupServices();
             #endregion
 
             #region Act
-            await _imageResize.Invoke("Container", "Blob");
+            await _imageResize.Invoke("Container", "valid-item-id", "valid-partition-key", "Blob");
             #endregion
 
             #region Assert
             mockBlobService.Verify(service => service.DownloadBlob(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
             mockBlobService.Verify(service => service.UploadBlob(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Stream>()), Times.Once);
-            MockCosmosDBService.Verify(service => service.UpdateItemFields<object>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Dictionary<string, object>>()), Times.Once);
+            mockCosmosDBService.Verify(service => service.UpdateItemFields<object>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Dictionary<string, object>>()), Times.Once);
             #endregion
         }
 

@@ -1,3 +1,5 @@
+using Funcify.Models;
+
 namespace Funcify.Tests.Builders;
 
 public class ProductBuilder

@@ -1,13 +1,13 @@
-using Azure;
 using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
+using System.IO;
+using System.Threading.Tasks;
 
-namespace Funcify.Contracts.Services;
-
-public interface IBlobService {
-    public Task<BlobContainerClient> GetContainer(string containerName); 
-
-    public Task<string> UploadBlob(string containerName, string blobName, Stream data);
-
-    public Task<string> DownloadBlob(string containerName, string blobName);
+namespace Funcify.Contracts.Services
+{
+    public interface IBlobService
+    {
+        Task<BlobContainerClient> GetContainer(string containerName);
+        Task<string> UploadBlob(string containerName, string blobName, Stream data);
+        Task<string> DownloadBlob(string containerName, string blobName);
+    }
 }

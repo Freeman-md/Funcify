@@ -1,38 +1,39 @@
-using System;
-using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
 using Funcify.Contracts.Services;
-using Funcify.Services;
+using System;
+using System.IO;
+using System.Threading.Tasks;
 
-namespace Funcify.Actions;
-
-public class UploadImage
+namespace Funcify.Actions
 {
-    private readonly IBlobService _blobService;
-
-    public UploadImage(IBlobService blobService)
+    public class UploadImage
     {
-        _blobService = blobService;
+        private readonly IBlobService _blobService;
+
+        public UploadImage(IBlobService blobService)
+        {
+            _blobService = blobService;
+        }
+
+        public async Task<string> Invoke(string containerName, string fileName, Stream fileStream)
+        {
+            ValidateInputs(containerName, fileName, fileStream);
+            return await _blobService.UploadBlob(containerName, fileName, fileStream);
+        }
+
+        #region Private Helper Methods
+
+        private void ValidateInputs(string containerName, string fileName, Stream fileStream)
+        {
+            if (string.IsNullOrWhiteSpace(containerName))
+                throw new ArgumentException("Container name cannot be null or empty.", nameof(containerName));
+
+            if (string.IsNullOrWhiteSpace(fileName))
+                throw new ArgumentException("File name cannot be null or empty.", nameof(fileName));
+
+            if (fileStream == null)
+                throw new ArgumentNullException(nameof(fileStream));
+        }
+
+        #endregion
     }
-
-    public async Task<string> Invoke(string containerName, string fileName, Stream fileStream)
-    {
-        ValidateInputs(containerName, fileName, fileStream);
-
-        return await _blobService.UploadBlob(containerName, fileName, fileStream);
-    }
-
-    private void ValidateInputs(string containerName, string fileName, Stream fileStream)
-    {
-        if (string.IsNullOrEmpty(containerName))
-            throw new ArgumentException(nameof(containerName));
-
-        if (string.IsNullOrEmpty(fileName))
-            throw new ArgumentException(nameof(fileName));
-
-        if (fileStream == null)
-            throw new ArgumentException(nameof(fileStream));
-    }
-
-
 }
