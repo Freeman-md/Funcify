@@ -144,9 +144,9 @@ public class BlobServiceTests
     {
         #region Arrange
         string containerName = "unprocessed-images";
-        string blobName = "valid-image.jpg";
+        string blobUri = "valid-image.jpg";
 
-        string downloadPath = Path.Combine(Directory.GetCurrentDirectory(), containerName, blobName);
+        string downloadPath = Path.Combine(Directory.GetCurrentDirectory(), containerName, blobUri);
 
         var (mockBlobContainerClient, mockBlobClient) = SetupValidBlobContainerAndBlobClient();
 
@@ -158,14 +158,14 @@ public class BlobServiceTests
         #endregion
 
         #region Act
-        string result = await _blobService.DownloadBlob(containerName, blobName);
+        string result = await _blobService.DownloadBlob(containerName, blobUri);
         #endregion
 
         #region Assert
         Assert.Equal(downloadPath, result);
 
         _mockBlobServiceClient.Verify(client => client.GetBlobContainerClient(containerName), Times.Once);
-        mockBlobContainerClient.Verify(client => client.GetBlobClient(blobName), Times.Once);
+        mockBlobContainerClient.Verify(client => client.GetBlobClient(blobUri), Times.Once);
         mockBlobClient.Verify(client => client.DownloadToAsync(downloadPath), Times.Once);
         #endregion
     }
@@ -175,7 +175,7 @@ public class BlobServiceTests
     [InlineData(null, "valid-image.jpg")]
     [InlineData("unprocessed-images", null)]
     [InlineData("unprocessed-images", "")]
-    public async Task DownloadBlobToFile_WithInvalidContainer_ThrowsArgumentException(string containerName, string blobName)
+    public async Task DownloadBlobToFile_WithInvalidContainer_ThrowsArgumentException(string containerName, string blobUri)
     {
         #region Arrange
         _mockBlobServiceClient
@@ -184,7 +184,7 @@ public class BlobServiceTests
         #endregion
 
         #region Act & Assert
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _blobService.DownloadBlob(containerName, blobName));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _blobService.DownloadBlob(containerName, blobUri));
         #endregion
     }
 
@@ -193,9 +193,9 @@ public class BlobServiceTests
     {
         #region Arrange
         string containerName = "unprocessed-images";
-        string blobName = "nonexistent-image.jpg";
+        string blobUri = "nonexistent-image.jpg";
 
-        string downloadPath = Path.Combine(Directory.GetCurrentDirectory(), containerName, blobName);
+        string downloadPath = Path.Combine(Directory.GetCurrentDirectory(), containerName, blobUri);
 
         var (mockBlobContainerClient, mockBlobClient) = SetupValidBlobContainerAndBlobClient();
 
@@ -204,7 +204,7 @@ public class BlobServiceTests
         #endregion
 
         #region Act & Assert
-        var exception = await Assert.ThrowsAsync<FileNotFoundException>(() => _blobService.DownloadBlob(containerName, blobName));
+        var exception = await Assert.ThrowsAsync<FileNotFoundException>(() => _blobService.DownloadBlob(containerName, blobUri));
         #endregion
     }
 

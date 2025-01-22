@@ -37,15 +37,15 @@ public class BlobService : IBlobService {
         return blobClient.Uri.ToString();
     }
 
-    public async Task<string> DownloadBlob(string containerName, string blobName) {
-        ValidateInputs(containerName, blobName);
+    public async Task<string> DownloadBlob(string containerName, string blobUri) {
+        ValidateInputs(containerName, blobUri);
 
-        string downloadPath = Path.Combine(Directory.GetCurrentDirectory(), containerName, blobName);
+        string downloadPath = Path.Combine(Directory.GetCurrentDirectory(), containerName, Path.GetFileName(blobUri));
 
         Directory.CreateDirectory(Path.GetDirectoryName(downloadPath));
 
         BlobContainerClient blobContainerClient = await GetContainer(containerName);
-        BlobClient blobClient = blobContainerClient.GetBlobClient(blobName);
+        BlobClient blobClient = blobContainerClient.GetBlobClient(blobUri);
 
         if (!await blobClient.ExistsAsync()) {
             throw new FileNotFoundException();
@@ -56,12 +56,12 @@ public class BlobService : IBlobService {
         return downloadPath;
     }
 
-    private void ValidateInputs(string containerName, string blobName) {
+    private void ValidateInputs(string containerName, string blobUri) {
         if (string.IsNullOrEmpty(containerName)) {
             throw new ArgumentException();
         }
 
-        if (string.IsNullOrEmpty(blobName)) {
+        if (string.IsNullOrEmpty(blobUri)) {
             throw new ArgumentException();
         }
     }

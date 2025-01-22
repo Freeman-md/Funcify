@@ -1,5 +1,7 @@
 using System;
 using Funcify.Contracts.Services;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 
 namespace Funcify.Actions;
 
@@ -8,20 +10,21 @@ public class ImageResize
     private readonly IBlobService _blobService;
     private readonly UpdateProduct _updateProduct;
 
-    public ImageResize(IBlobService blobService, UpdateProduct updateProduct) {
+    public ImageResize(IBlobService blobService, UpdateProduct updateProduct)
+    {
         _blobService = blobService;
         _updateProduct = updateProduct;
     }
 
-    public async Task Invoke(string containerName, string blobName)
+    public async Task Invoke(string containerName, string blobUri)
     {
-        ValidateInputs(containerName, blobName);
+        ValidateInputs(containerName, blobUri);
 
-        string downloadPath = await DownloadBlob(containerName, blobName);
+        string downloadPath = await DownloadBlob(containerName, blobUri);
 
-        // await ResizeImage(downloadPath);
+        string uploadPath = await ResizeImage(downloadPath);
 
-        // await UploadResizedImage(containerName, blobName, downloadPath);
+        await UploadResizedImage(containerName, blobUri, uploadPath);
 
         // await UpdateProduct(itemId, downloadPath);
 
@@ -29,32 +32,44 @@ public class ImageResize
     }
 
     // Private methods for each action step
-    private void ValidateInputs(string containerName, string blobName)
+    private void ValidateInputs(string containerName, string blobUri)
     {
-        if (string.IsNullOrEmpty(containerName)) {
+        if (string.IsNullOrEmpty(containerName))
+        {
             throw new ArgumentException();
         }
 
-        if (string.IsNullOrEmpty(blobName)) {
+        if (string.IsNullOrEmpty(blobUri))
+        {
             throw new ArgumentException();
         }
     }
 
-    private async Task<string> DownloadBlob(string containerName, string blobName)
+    private async Task<string> DownloadBlob(string containerName, string blobUri)
     {
-        return await _blobService.DownloadBlob(containerName, blobName);
+        return await _blobService.DownloadBlob(containerName, blobUri);
     }
 
-    private async Task ResizeImage(string downloadPath)
+    public async Task<string> ResizeImage(string downloadPath)
     {
-        // TODO: Resize the image from the download path
-        throw new NotImplementedException();
+        using (Image image = Image.Load(downloadPath))
+        {
+            image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
+
+            string uploadPath = Path.Combine(Path.GetDirectoryName(downloadPath), "resized_" + Path.GetFileName(downloadPath));
+
+            await image.SaveAsync(uploadPath);
+
+            return uploadPath;
+        }
     }
 
-    private async Task UploadResizedImage(string containerName, string blobName, string downloadPath)
+    private async Task UploadResizedImage(string containerName, string blobUri, string uploadPath)
     {
-        // TODO: Use the blob service to upload the resized image
-        throw new NotImplementedException();
+        using (FileStream fileStream = new FileStream(uploadPath, FileMode.Open))
+        {
+            await _blobService.UploadBlob(containerName, blobUri, fileStream);
+        }
     }
 
     private async Task UpdateProduct(string imageId, string downloadPath)

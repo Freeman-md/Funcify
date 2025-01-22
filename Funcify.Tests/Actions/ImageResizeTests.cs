@@ -4,6 +4,8 @@ using Funcify.Actions;
 using Funcify.Contracts.Services;
 using Funcify.Services;
 using Moq;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace Funcify.Tests.Actions;
 
@@ -26,19 +28,37 @@ public class ImageResizeTests
     }
 
     #region Helper Methods
+    private (string, string) CreateDummyImage()
+    {
+        string tempDir = Path.Combine(Directory.GetCurrentDirectory(), "testImages");
+        Directory.CreateDirectory(tempDir);
+
+        string dummyImagePath = Path.Combine(tempDir, "dummy-image.jpg");
+
+        using (var image = new Image<Rgba32>(10, 10))
+        {
+            image[0, 0] = new Rgba32(255, 0, 0);
+            image.SaveAsJpeg(dummyImagePath);
+        }
+
+        return (dummyImagePath, tempDir);
+    }
 
     private (Mock<IBlobService> MockBlobService, Mock<ICosmosDBService> MockCosmosDBService) SetupServices()
     {
+        var (dummyImagePath, _) = CreateDummyImage();
+
         _blobService.Setup(service => service.DownloadBlob(It.IsAny<string>(), It.IsAny<string>()))
-        .ReturnsAsync(It.IsAny<string>());
+        .ReturnsAsync(dummyImagePath);
+
+        _blobService.Setup(service => service.UploadBlob(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Stream>()))
+        .ReturnsAsync("/upload-path");
 
         _cosmosDBService.Setup(service => service.UpdateItem(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>()))
         .ReturnsAsync(It.IsAny<object>());
 
-
         return (_blobService, _cosmosDBService);
     }
-
     #endregion
 
     [Theory]
@@ -54,7 +74,7 @@ public class ImageResizeTests
     }
 
     [Fact]
-    public async Task ImageResize_WhenValidInputsAreProvided_ShouldCallDownloadBlobOnce()
+    public async Task ImageResize_ShouldCallDownloadBlobOnce_InBlobService()
     {
         #region Arrange
         var (mockBlobService, _) = SetupServices();
@@ -66,6 +86,22 @@ public class ImageResizeTests
 
         #region Assert
         mockBlobService.Verify(service => service.DownloadBlob("Container", "Blob"), Times.Once);
+        #endregion
+    }
+
+    [Fact]
+    public async Task ImageResize_ShouldCallUploadBlobOnce_InBlobService()
+    {
+        #region Arrange
+        var (mockBlobService, _) = SetupServices();
+        #endregion
+
+        #region Act
+        await _imageResize.Invoke("Container", "Blob");
+        #endregion
+
+        #region Assert
+        mockBlobService.Verify(service => service.UploadBlob("Container", "Blob", It.IsAny<Stream>()), Times.Once);
         #endregion
     }
 
