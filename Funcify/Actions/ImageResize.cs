@@ -24,7 +24,7 @@ public class ImageResize
 
         string uploadPath = await ResizeImage(downloadPath);
 
-        await UploadResizedImage(containerName, blobUri, uploadPath);
+        string uploadedBlobUri = await UploadResizedImage(containerName, blobUri, uploadPath);
 
         // await UpdateProduct(itemId, downloadPath);
 
@@ -64,11 +64,11 @@ public class ImageResize
         }
     }
 
-    private async Task UploadResizedImage(string containerName, string blobUri, string uploadPath)
+    private async Task<string> UploadResizedImage(string containerName, string blobUri, string uploadPath)
     {
         using (FileStream fileStream = new FileStream(uploadPath, FileMode.Open))
         {
-            await _blobService.UploadBlob(containerName, blobUri, fileStream);
+            return await _blobService.UploadBlob(containerName, blobUri, fileStream);
         }
     }
 

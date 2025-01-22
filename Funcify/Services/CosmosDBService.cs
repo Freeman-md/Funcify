@@ -60,6 +60,27 @@ public class CosmosDBService : ICosmosDBService
         return response.Resource;
     }
 
+    public async Task<T> UpdateItemFields<T>(string databaseName, string containerName, string id, string partitionKey, Dictionary<string, object> updates)
+    {
+        ValidateInput(id, nameof(id));
+        ValidateInput(partitionKey, nameof(partitionKey));
+
+        Container container = GetContainer(databaseName, containerName);
+
+        var patchOperations = updates.Select(update => PatchOperation.Replace($"/{update.Key}", update.Value)).ToList();
+
+        ItemResponse<T> response = await container.PatchItemAsync<T>(
+            id: id,
+            partitionKey: new PartitionKey(partitionKey),
+            patchOperations: patchOperations,
+            null,
+            default
+        );
+
+        return response.Resource;
+    }
+
+
     private void ValidateInput(string input, string paramName)
     {
         if (string.IsNullOrEmpty(input))

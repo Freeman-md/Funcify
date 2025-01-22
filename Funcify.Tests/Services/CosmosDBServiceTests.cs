@@ -357,5 +357,58 @@ namespace Funcify.Tests.Services
             #endregion
         }
 
+        [Fact]
+        public async Task UpdateItemFields_ShouldUpdateSpecifiedFields()
+        {
+            #region Arrange
+            string databaseName = "Database";
+            string containerName = "Container";
+            string itemId = "item-id";
+            string partitionKey = "partition-key";
+
+            var updates = new Dictionary<string, object>
+                {
+                    { "Name", "Updated Product Name" },
+                    { "Price", 150.0M }
+                };
+
+            var product = new ProductBuilder()
+                            .WithName(updates["Name"].ToString())
+                            .WithPrice((decimal)updates["Price"])
+                            .Build();
+
+            var (_, mockContainer) = SetupValidDatabaseAndContainer();
+
+            var patchOperations = updates.Select(update => PatchOperation.Replace($"/{update.Key}", update.Value)).ToList();
+
+            var mockItemResponse = new Mock<ItemResponse<Product>>();
+            mockItemResponse.Setup(r => r.Resource).Returns(product);
+
+            mockContainer
+                .Setup(container => container.PatchItemAsync<Product>(
+                    itemId,
+                    new PartitionKey(partitionKey),
+                    It.IsAny<IReadOnlyList<PatchOperation>>(),
+                    null,
+                    default
+                ))
+                .ReturnsAsync(mockItemResponse.Object);
+            #endregion
+
+            #region Act
+            Product updatedProduct = await _cosmosDBService.UpdateItemFields<Product>(databaseName, containerName, itemId, partitionKey, updates);
+            #endregion
+
+            #region Assert
+            Assert.NotNull(updatedProduct);
+            Assert.Equal(updates["Name"], updatedProduct.Name);
+            Assert.Equal(updates["Price"], updatedProduct.Price);
+            #endregion
+        }
+
+
+
+
+
     }
 }

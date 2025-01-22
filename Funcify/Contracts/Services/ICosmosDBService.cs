@@ -9,4 +9,6 @@ public interface ICosmosDBService {
 
     public Task<T> CreateItem<T>(string databaseName, string containerName, T item);
     public Task<T> UpdateItem<T>(string databaseName, string containerName, T item);
+
+    public Task<T> UpdateItemFields<T>(string databaseName, string containerName, string id, string partitionKey, Dictionary<string, object> updates);
 }
