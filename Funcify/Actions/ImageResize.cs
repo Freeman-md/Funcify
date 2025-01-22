@@ -8,15 +8,24 @@ namespace Funcify.Actions;
 public class ImageResize
 {
     private readonly IBlobService _blobService;
-    private readonly UpdateProduct _updateProduct;
-
-    public ImageResize(IBlobService blobService, UpdateProduct updateProduct)
+    private readonly ICosmosDBService _cosmosDBService;
+    private readonly string _databaseName;
+    private readonly string _containerName;
+    public ImageResize(IBlobService blobService, ICosmosDBService cosmosDBService)
     {
         _blobService = blobService;
-        _updateProduct = updateProduct;
+        _cosmosDBService = cosmosDBService;
+
+        _databaseName = "Funcify";
+        _containerName = "Products";
     }
 
     public async Task Invoke(string containerName, string blobUri)
+    {
+        await this.Invoke(containerName, "", "", blobUri);
+    }
+
+    public async Task Invoke(string containerName, string itemId, string partitionKey, string blobUri)
     {
         ValidateInputs(containerName, blobUri);
 
@@ -26,7 +35,7 @@ public class ImageResize
 
         string uploadedBlobUri = await UploadResizedImage(containerName, blobUri, uploadPath);
 
-        // await UpdateProduct(itemId, downloadPath);
+        await UpdateProductImageUrl(itemId, partitionKey, uploadedBlobUri);
 
         DeleteTempFile(uploadPath, downloadPath);
     }
@@ -72,10 +81,16 @@ public class ImageResize
         }
     }
 
-    private async Task UpdateProduct(string imageId, string downloadPath)
+    private async Task UpdateProductImageUrl(string imageId, string partitionKey, string newImageUrl)
     {
-        // TODO: Update Product In Cosmos DB with the new processed image URL
-        throw new NotImplementedException();
+        // Build a dictionary of fields to update
+        var updates = new Dictionary<string, object>
+            {
+                { "ProcessedImageUrl", newImageUrl }
+            };
+
+        // Use the CosmosDBService to update the product's image URL
+        await _cosmosDBService.UpdateItemFields<Product>("Database", "Container", imageId, partitionKey, updates);
     }
 
     private void DeleteTempFile(string uploadPath, string downloadPath)

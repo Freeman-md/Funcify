@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Funcify.Actions;
 using Funcify.Contracts.Services;
 using Funcify.Services;
+using Microsoft.Azure.Cosmos;
 using Moq;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -15,15 +16,14 @@ namespace Funcify.Tests.Actions
     {
         private readonly Mock<IBlobService> _blobService;
         private readonly Mock<ICosmosDBService> _cosmosDBService;
-        private readonly UpdateProduct _updateProduct;
         private readonly ImageResize _imageResize;
 
         public ImageResizeTests()
         {
             _blobService = new Mock<IBlobService>();
             _cosmosDBService = new Mock<ICosmosDBService>();
-            _updateProduct = new UpdateProduct(_cosmosDBService.Object);
-            _imageResize = new ImageResize(_blobService.Object, _updateProduct);
+
+            _imageResize = new ImageResize(_blobService.Object, _cosmosDBService.Object);
         }
 
         #region Helper Methods
@@ -73,10 +73,10 @@ namespace Funcify.Tests.Actions
         }
 
         [Fact]
-        public async Task ImageResize_ShouldCallDownloadBlobOnce_InBlobService()
+        public async Task ImageResize_WithValidInputs_ShouldCallNecessaryServiceMethods()
         {
             #region Arrange
-            var (mockBlobService, _) = SetupServices();
+            var (mockBlobService, MockCosmosDBService) = SetupServices();
             #endregion
 
             #region Act
@@ -85,22 +85,8 @@ namespace Funcify.Tests.Actions
 
             #region Assert
             mockBlobService.Verify(service => service.DownloadBlob("Container", "Blob"), Times.Once);
-            #endregion
-        }
-
-        [Fact]
-        public async Task ImageResize_ShouldCallUploadBlobOnce_InBlobService()
-        {
-            #region Arrange
-            var (mockBlobService, _) = SetupServices();
-            #endregion
-
-            #region Act
-            await _imageResize.Invoke("Container", "Blob");
-            #endregion
-
-            #region Assert
             mockBlobService.Verify(service => service.UploadBlob("Container", "Blob", It.IsAny<Stream>()), Times.Once);
+            MockCosmosDBService.Verify(service => service.UpdateItemFields<object>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Dictionary<string, object>>()), Times.Once);
             #endregion
         }
 
