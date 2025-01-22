@@ -28,7 +28,7 @@ public class ImageResize
 
         // await UpdateProduct(itemId, downloadPath);
 
-        // DeleteTempFile(downloadPath);
+        DeleteTempFile(uploadPath, downloadPath);
     }
 
     // Private methods for each action step
@@ -78,9 +78,16 @@ public class ImageResize
         throw new NotImplementedException();
     }
 
-    private void DeleteTempFile(string downloadPath)
+    private void DeleteTempFile(string uploadPath, string downloadPath)
     {
-        // TODO: Delete the temporary file from the local system
-        throw new NotImplementedException();
+        if (File.Exists(uploadPath))
+        {
+            File.Delete(uploadPath);
+        }
+
+        if (File.Exists(downloadPath))
+        {
+            File.Delete(downloadPath);
+        }
     }
 }
