@@ -38,6 +38,31 @@ public class BlobService : IBlobService {
     }
 
     public async Task<string> DownloadBlob(string containerName, string blobName) {
-        throw new NotImplementedException();
+        ValidateInputs(containerName, blobName);
+
+        string downloadPath = Path.Combine(Directory.GetCurrentDirectory(), containerName, blobName);
+
+        Directory.CreateDirectory(Path.GetDirectoryName(downloadPath));
+
+        BlobContainerClient blobContainerClient = await GetContainer(containerName);
+        BlobClient blobClient = blobContainerClient.GetBlobClient(blobName);
+
+        if (!await blobClient.ExistsAsync()) {
+            throw new FileNotFoundException();
+        }
+
+        await blobClient.DownloadToAsync(downloadPath);
+
+        return downloadPath;
+    }
+
+    private void ValidateInputs(string containerName, string blobName) {
+        if (string.IsNullOrEmpty(containerName)) {
+            throw new ArgumentException();
+        }
+
+        if (string.IsNullOrEmpty(blobName)) {
+            throw new ArgumentException();
+        }
     }
 }
