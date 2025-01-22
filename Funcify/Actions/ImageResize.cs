@@ -6,7 +6,6 @@ namespace Funcify.Actions;
 public class ImageResize
 {
     private readonly IBlobService _blobService;
-    private readonly ICosmosDBService _cosmosDBService;
     private readonly UpdateProduct _updateProduct;
 
     public ImageResize(IBlobService blobService, UpdateProduct updateProduct) {
@@ -14,7 +13,7 @@ public class ImageResize
         _updateProduct = updateProduct;
     }
 
-    public async Task Invoke(string containerName, string blobName, string imageId)
+    public async Task Invoke(string containerName, string blobName)
     {
         ValidateInputs(containerName, blobName);
 
@@ -24,7 +23,7 @@ public class ImageResize
 
         await UploadResizedImage(containerName, blobName, downloadPath);
 
-        await UpdateProduct(imageId, downloadPath);
+        // await UpdateProduct(itemId, downloadPath);
 
         DeleteTempFile(downloadPath);
     }
