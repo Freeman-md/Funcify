@@ -89,8 +89,7 @@ public class ImageResize
                 { "ProcessedImageUrl", newImageUrl }
             };
 
-        // Use the CosmosDBService to update the product's image URL
-        await _cosmosDBService.UpdateItemFields<Product>("Database", "Container", imageId, partitionKey, updates);
+        await _cosmosDBService.UpdateItemFields<Product>(_databaseName, _containerName, imageId, partitionKey, updates);
     }
 
     private void DeleteTempFile(string uploadPath, string downloadPath)
