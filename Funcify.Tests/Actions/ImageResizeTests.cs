@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Funcify.Tests.Actions
 {
-    public class ImageResizeTests
+    public class ImageResizeTests : IDisposable
     {
         private readonly Mock<IBlobService> _blobService;
         private readonly Mock<ICosmosDBService> _cosmosDBService;

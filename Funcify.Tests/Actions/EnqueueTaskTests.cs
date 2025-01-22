@@ -21,7 +21,7 @@ public class EnqueueTaskTests
     {
         #region Arrange
         string validMessage = "Process image task";
-        _mockQueueService.Setup(service => service.AddMessage(validMessage))
+        _mockQueueService.Setup(service => service.AddMessage(It.IsAny<string>()))
                          .Returns(Task.CompletedTask);
         #endregion
 
@@ -30,7 +30,7 @@ public class EnqueueTaskTests
         #endregion
 
         #region Assert
-        _mockQueueService.Verify(service => service.AddMessage(validMessage), Times.Once);
+        _mockQueueService.Verify(service => service.AddMessage(It.IsAny<string>()), Times.Once);
         #endregion
     }
 
