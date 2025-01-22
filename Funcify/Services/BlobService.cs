@@ -37,15 +37,15 @@ public class BlobService : IBlobService {
         return blobClient.Uri.ToString();
     }
 
-    public async Task<string> DownloadBlob(string containerName, string blobUri) {
-        ValidateInputs(containerName, blobUri);
+    public async Task<string> DownloadBlob(string unprocessedBlobsContainerName, string blobName) {
+        ValidateInputs(unprocessedBlobsContainerName, blobName);
 
-        string downloadPath = Path.Combine(Directory.GetCurrentDirectory(), containerName, Path.GetFileName(blobUri));
+        string downloadPath = Path.Combine(Directory.GetCurrentDirectory(), unprocessedBlobsContainerName, Path.GetFileName(blobName));
 
         Directory.CreateDirectory(Path.GetDirectoryName(downloadPath));
 
-        BlobContainerClient blobContainerClient = await GetContainer(containerName);
-        BlobClient blobClient = blobContainerClient.GetBlobClient(blobUri);
+        BlobContainerClient blobContainerClient = await GetContainer(unprocessedBlobsContainerName);
+        BlobClient blobClient = blobContainerClient.GetBlobClient(blobName);
 
         if (!await blobClient.ExistsAsync()) {
             throw new FileNotFoundException();

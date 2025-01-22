@@ -8,6 +8,9 @@ public class Product
     public required string Name { get; set; }
     public required decimal Price { get; set; } = 0;
     public required int Quantity { get; set; } = 0;
+
+    public string Category { get; set; } = "products";
+    public string? FileName { get; set; }
     public string? UnprocessedImageUrl { get; set; }
     public string? ProcessedImageUrl { get; set; }
 

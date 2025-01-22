@@ -75,7 +75,8 @@ namespace Funcify
                             Name = name,
                             Price = price,
                             Quantity = quantity,
-                            UnprocessedImageUrl = blobUri
+                            UnprocessedImageUrl = blobUri,
+                            FileName = file.FileName
                         };
                     }
                     else
@@ -106,11 +107,13 @@ namespace Funcify
 
                 if (createdProduct != null && !string.IsNullOrEmpty(createdProduct.UnprocessedImageUrl))
                 {
-                    string taskMessage = JsonConvert.SerializeObject(new
-                    {
-                        ProductId = productData.id,
-                        ImageUrl = productData.UnprocessedImageUrl
-                    });
+                    var processingMessage = new ProductImageProcessingMessage(
+                        createdProduct.id,
+                        createdProduct.UnprocessedImageUrl,
+                        createdProduct.FileName
+                    );
+
+                    string taskMessage = JsonConvert.SerializeObject(processingMessage);
 
                     await _enqueueTaskAction.Invoke(taskMessage);
                     _logger.LogInformation($"Enqueued task for processing image: {productData.UnprocessedImageUrl}");

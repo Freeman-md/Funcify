@@ -44,7 +44,7 @@ public class CosmosDBService : ICosmosDBService
 
         Container container = GetContainer(databaseName, containerName);
 
-        ItemResponse<T> response = await container.CreateItemAsync<T>(item);
+        ItemResponse<T> response = await container.CreateItemAsync<T>(item, new PartitionKey("products"));
 
         return response.Resource;
     }
@@ -63,11 +63,12 @@ public class CosmosDBService : ICosmosDBService
     public async Task<T> UpdateItemFields<T>(string databaseName, string containerName, string id, string partitionKey, Dictionary<string, object> updates)
     {
         ValidateInput(id, nameof(id));
-        ValidateInput(partitionKey, nameof(partitionKey));
 
         Container container = GetContainer(databaseName, containerName);
 
         var patchOperations = updates.Select(update => PatchOperation.Replace($"/{update.Key}", update.Value)).ToList();
+
+        Console.WriteLine($"Container: {container.Id}, Id: {id}, PartitionKey: {partitionKey}");
 
         ItemResponse<T> response = await container.PatchItemAsync<T>(
             id: id,

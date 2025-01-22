@@ -10,30 +10,33 @@ public class ImageResize
     private readonly IBlobService _blobService;
     private readonly ICosmosDBService _cosmosDBService;
     private readonly string _databaseName;
-    private readonly string _containerName;
+    private readonly string _databaseContainerName;
+    private readonly string _unprocessedBlobsContainerName;
     public ImageResize(IBlobService blobService, ICosmosDBService cosmosDBService)
     {
         _blobService = blobService;
         _cosmosDBService = cosmosDBService;
 
         _databaseName = "Funcify";
-        _containerName = "Products";
+        _databaseContainerName = "Products";
+
+        _unprocessedBlobsContainerName = "unprocessed-images";
     }
 
-    public async Task Invoke(string containerName, string blobUri)
+    public async Task Invoke(string processedBlobsContainerName, string blobName)
     {
-        await this.Invoke(containerName, "", "", blobUri);
+        await this.Invoke(processedBlobsContainerName, "", "", blobName);
     }
 
-    public async Task Invoke(string containerName, string itemId, string partitionKey, string blobUri)
+    public async Task Invoke(string processedBlobsContainerName, string itemId, string partitionKey, string blobName)
     {
-        ValidateInputs(containerName, blobUri);
+        ValidateInputs(processedBlobsContainerName, blobName);
 
-        string downloadPath = await DownloadBlob(containerName, blobUri);
+        string downloadPath = await DownloadBlob(_unprocessedBlobsContainerName, blobName);
 
         string uploadPath = await ResizeImage(downloadPath);
 
-        string uploadedBlobUri = await UploadResizedImage(containerName, blobUri, uploadPath);
+        string uploadedBlobUri = await UploadResizedImage(processedBlobsContainerName, blobName, uploadPath);
 
         await UpdateProductImageUrl(itemId, partitionKey, uploadedBlobUri);
 
@@ -41,22 +44,22 @@ public class ImageResize
     }
 
     // Private methods for each action step
-    private void ValidateInputs(string containerName, string blobUri)
+    private void ValidateInputs(string processedBlobsContainerName, string blobName)
     {
-        if (string.IsNullOrEmpty(containerName))
+        if (string.IsNullOrEmpty(processedBlobsContainerName))
         {
             throw new ArgumentException();
         }
 
-        if (string.IsNullOrEmpty(blobUri))
+        if (string.IsNullOrEmpty(blobName))
         {
             throw new ArgumentException();
         }
     }
 
-    private async Task<string> DownloadBlob(string containerName, string blobUri)
+    private async Task<string> DownloadBlob(string unprocessedBlobsContainerName, string blobName)
     {
-        return await _blobService.DownloadBlob(containerName, blobUri);
+        return await _blobService.DownloadBlob(unprocessedBlobsContainerName, blobName);
     }
 
     public async Task<string> ResizeImage(string downloadPath)
@@ -65,7 +68,7 @@ public class ImageResize
         {
             image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
 
-            string uploadPath = Path.Combine(Path.GetDirectoryName(downloadPath), "resized_" + Path.GetFileName(downloadPath));
+            string uploadPath = Path.Combine(Path.GetDirectoryName(downloadPath)!, "resized_" + Path.GetFileName(downloadPath));
 
             await image.SaveAsync(uploadPath);
 
@@ -73,11 +76,11 @@ public class ImageResize
         }
     }
 
-    private async Task<string> UploadResizedImage(string containerName, string blobUri, string uploadPath)
+    private async Task<string> UploadResizedImage(string processedBlobsContainerName, string blobName, string uploadPath)
     {
         using (FileStream fileStream = new FileStream(uploadPath, FileMode.Open))
         {
-            return await _blobService.UploadBlob(containerName, blobUri, fileStream);
+            return await _blobService.UploadBlob(processedBlobsContainerName, blobName, fileStream);
         }
     }
 
@@ -89,7 +92,7 @@ public class ImageResize
                 { "ProcessedImageUrl", newImageUrl }
             };
 
-        await _cosmosDBService.UpdateItemFields<Product>(_databaseName, _containerName, imageId, partitionKey, updates);
+        await _cosmosDBService.UpdateItemFields<Product>(_databaseName, _databaseContainerName, imageId, partitionKey, updates);
     }
 
     private void DeleteTempFile(string uploadPath, string downloadPath)

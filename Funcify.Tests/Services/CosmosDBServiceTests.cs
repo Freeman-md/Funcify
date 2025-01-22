@@ -203,7 +203,7 @@ namespace Funcify.Tests.Services
             mockContainer
                 .Setup(c => c.CreateItemAsync(
                     product,
-                    null,
+                    It.IsAny<PartitionKey>(),
                     null,
                     default
                 ))
@@ -260,7 +260,7 @@ namespace Funcify.Tests.Services
             mockContainer
                 .Setup(c => c.CreateItemAsync(
                     product,
-                    null,
+                    It.IsAny<PartitionKey>(),
                     null,
                     default
                 ))

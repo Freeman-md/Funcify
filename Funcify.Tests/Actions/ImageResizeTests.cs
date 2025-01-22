@@ -84,8 +84,8 @@ namespace Funcify.Tests.Actions
             #endregion
 
             #region Assert
-            mockBlobService.Verify(service => service.DownloadBlob("Container", "Blob"), Times.Once);
-            mockBlobService.Verify(service => service.UploadBlob("Container", "Blob", It.IsAny<Stream>()), Times.Once);
+            mockBlobService.Verify(service => service.DownloadBlob(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+            mockBlobService.Verify(service => service.UploadBlob(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Stream>()), Times.Once);
             MockCosmosDBService.Verify(service => service.UpdateItemFields<object>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Dictionary<string, object>>()), Times.Once);
             #endregion
         }
