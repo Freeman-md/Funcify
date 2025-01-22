@@ -31,8 +31,13 @@ public class ImageResize
     // Private methods for each action step
     private void ValidateInputs(string containerName, string blobName)
     {
-        // TODO: Validate if containerName and blobName are valid
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(containerName)) {
+            throw new ArgumentException();
+        }
+
+        if (string.IsNullOrEmpty(blobName)) {
+            throw new ArgumentException();
+        }
     }
 
     private async Task<string> DownloadBlob(string containerName, string blobName)
