@@ -1,3 +1,4 @@
+using System.Text;
 using Funcify.Contracts.Services;
 
 namespace Funcify.Actions;
@@ -18,6 +19,8 @@ public class EnqueueTask
             throw new ArgumentException("Task message cannot be null or empty.", nameof(message));
         }
 
-        await _queueService.AddMessage(message);
+        var bytes = Encoding.UTF8.GetBytes(message);
+
+        await _queueService.AddMessage(Convert.ToBase64String(bytes));
     }
 }
