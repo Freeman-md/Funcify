@@ -27,7 +27,7 @@ var host = new HostBuilder()
         services.AddSingleton<UploadImage>();
         services.AddSingleton<UpdateProduct>();
         services.AddSingleton<EnqueueTask>();
-        services.AddSingleton<ImageResize>();
+        services.AddSingleton<ImageResize>(); //
     })
     .Build();
 
