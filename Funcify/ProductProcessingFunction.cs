@@ -21,6 +21,8 @@ namespace Funcify
         private readonly UpdateProduct _updateProductAction;
         private readonly EnqueueTask _enqueueTaskAction;
 
+        private static readonly string[] PermittedExtensions = { ".jpg", ".jpeg", ".png", ".gif" };
+
         public ProductProcessingFunction(
             ILogger<ProductProcessingFunction> logger,
             CreateProduct createProductAction,
@@ -38,95 +40,30 @@ namespace Funcify
         [Function("ProductProcessingFunction")]
         public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req)
         {
+            _logger.LogInformation("Received a request to process a product.");
+
             try
             {
-                _logger.LogInformation("Processing request to create a product.");
+                var productData = await ParseAndValidateRequestAsync(req);
 
-                Product productData = null;
-
-                // Handling form-data
-                if (req.HasFormContentType)
+                if (productData.RequiresImageUpload)
                 {
-                    _logger.LogInformation("Processing form-data request.");
-
-                    var form = await req.ReadFormAsync();
-
-                    // Extract product details
-                    var name = form["Name"].ToString();
-                    var price = decimal.TryParse(form["Price"], out var parsedPrice) ? parsedPrice : 0;
-                    var quantity = int.TryParse(form["Quantity"], out var parsedQuantity) ? parsedQuantity : 0;
-
-                    if (string.IsNullOrWhiteSpace(name) || price <= 0 || quantity < 0)
-                    {
-                        return new BadRequestObjectResult("Invalid product data in form submission.");
-                    }
-
-                    if (form.Files.Count > 0)
-                    {
-                        var file = form.Files[0];
-
-                        if (!IsValidImage(file))
-                        {
-                            return new BadRequestObjectResult("Invalid file format. Please upload a valid image.");
-                        }
-
-                        using var stream = file.OpenReadStream();
-                        string blobUri = await _uploadImageAction.Invoke("unprocessed-images", file.FileName, stream);
-
-                        productData = new Product
-                        {
-                            // If ID is not provided by the client, generate a GUID
-                            id = Guid.NewGuid().ToString(),
-                            Name = name,
-                            Price = price,
-                            Quantity = quantity,
-                            UnprocessedImageUrl = blobUri,
-                            FileName = file.FileName
-                        };
-                    }
-                    else
-                    {
-                        return new BadRequestObjectResult("No file uploaded. Please upload an image file.");
-                    }
-                }
-                else if (req.ContentType == "application/json")
-                {
-                    // Handling JSON
-                    _logger.LogInformation("Processing JSON request.");
-
-                    using var reader = new StreamReader(req.Body);
-                    string requestBody = await reader.ReadToEndAsync();
-                    productData = JsonConvert.DeserializeObject<Product>(requestBody);
-
-                    if (productData == null)
-                    {
-                        return new BadRequestObjectResult("Product data is null or invalid.");
-                    }
-                }
-                else
-                {
-                    return new BadRequestObjectResult("Unsupported content type. Please send JSON or form-data.");
+                    var blobUri = await UploadProductImageAsync(productData.ImageFile);
+                    productData.UnprocessedImageUrl = blobUri;
+                    productData.FileName = productData.ImageFile.FileName;
                 }
 
-                Product createdProduct = await _createProductAction.Invoke(productData);
+                var createdProduct = await CreateProductAsync(productData);
                 _logger.LogInformation($"Product created successfully: {createdProduct?.id}");
 
-                // If there's an unprocessed image URL, enqueue image processing
                 if (!string.IsNullOrEmpty(createdProduct.UnprocessedImageUrl))
                 {
-                    var processingMessage = new ProductImageProcessingMessage(
-                        createdProduct.id,
-                        createdProduct.UnprocessedImageUrl,
-                        createdProduct.FileName
-                    );
-
-                    await _enqueueTaskAction.Invoke(JsonConvert.SerializeObject(processingMessage));
-                    _logger.LogInformation($"Enqueued task for processing image: {createdProduct.UnprocessedImageUrl}");
+                    await EnqueueImageProcessingAsync(createdProduct);
                 }
 
                 return new OkObjectResult(new
                 {
-                    Message = "Product created successfully",
+                    Message = "Product processed successfully",
                     Product = createdProduct
                 });
             }
@@ -163,11 +100,122 @@ namespace Funcify
             }
         }
 
+        #region Action Methods
+
+        private async Task<Product> ParseAndValidateRequestAsync(HttpRequest req)
+        {
+            if (req.HasFormContentType)
+            {
+                _logger.LogInformation("Processing form-data request.");
+                return await ProcessFormDataAsync(req);
+            }
+            else if (req.ContentType.Equals("application/json", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation("Processing JSON request.");
+                return await ProcessJsonAsync(req);
+            }
+            else
+            {
+                throw new ArgumentException("Unsupported content type. Please send JSON or form-data.");
+            }
+        }
+
+        private async Task<Product> ProcessFormDataAsync(HttpRequest req)
+        {
+            var form = await req.ReadFormAsync();
+
+            var name = form["Name"].ToString();
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Product name is required.");
+
+            if (!decimal.TryParse(form["Price"], out var price) || price <= 0)
+                throw new ArgumentException("Invalid price value.");
+
+            if (!int.TryParse(form["Quantity"], out var quantity) || quantity < 0)
+                throw new ArgumentException("Invalid quantity value.");
+
+            if (form.Files.Count == 0)
+                throw new ArgumentException("No file uploaded. Please upload an image file.");
+
+            var file = form.Files[0];
+            if (!IsValidImage(file))
+                throw new ArgumentException("Invalid file format. Please upload a valid image.");
+
+            return new Product
+            {
+                id = Guid.NewGuid().ToString(),
+                Name = name,
+                Price = price,
+                Quantity = quantity,
+                RequiresImageUpload = true,
+                ImageFile = file
+            };
+        }
+
+        private async Task<Product> ProcessJsonAsync(HttpRequest req)
+        {
+            using var reader = new StreamReader(req.Body);
+            var requestBody = await reader.ReadToEndAsync();
+
+            var product = JsonConvert.DeserializeObject<Product>(requestBody);
+            if (product == null)
+                throw new ArgumentException("Product data is null or invalid.");
+
+            ValidateProductData(product);
+            return product;
+        }
+
+        private void ValidateProductData(Product product)
+        {
+            if (string.IsNullOrWhiteSpace(product.Name))
+                throw new ArgumentException("Product name is required.");
+
+            if (product.Price <= 0)
+                throw new ArgumentException("Price must be greater than zero.");
+
+            if (product.Quantity < 0)
+                throw new ArgumentException("Quantity cannot be negative.");
+        }
+
+        private async Task<string> UploadProductImageAsync(IFormFile file)
+        {
+            using var stream = file.OpenReadStream();
+            var blobUri = await _uploadImageAction.Invoke("unprocessed-images", file.FileName, stream);
+            _logger.LogInformation($"Image uploaded successfully: {blobUri}");
+            return blobUri;
+        }
+
+        private async Task<Product> CreateProductAsync(Product product)
+        {
+            var createdProduct = await _createProductAction.Invoke(product);
+            if (createdProduct == null)
+                throw new Exception("Failed to create product.");
+            return createdProduct;
+        }
+
+        private async Task EnqueueImageProcessingAsync(Product product)
+        {
+            var processingMessage = new ProductImageProcessingMessage(
+                product.id,
+                product.UnprocessedImageUrl,
+                product.FileName
+            );
+
+            var messageBody = JsonConvert.SerializeObject(processingMessage);
+            await _enqueueTaskAction.Invoke(messageBody);
+            _logger.LogInformation($"Enqueued task for processing image: {product.UnprocessedImageUrl}");
+        }
+
+        #endregion
+
+        #region Helper Methods
+
         private bool IsValidImage(IFormFile file)
         {
-            var permittedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
             var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            return !string.IsNullOrEmpty(fileExtension) && permittedExtensions.Contains(fileExtension);
+            return PermittedExtensions.Contains(fileExtension);
         }
+
+        #endregion
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http;
 
 namespace Funcify.Models;
 
@@ -13,6 +14,12 @@ public class Product
 
     public string Category { get; set; } = "products";
     public string? FileName { get; set; }
+
+    [JsonIgnore]
+    public bool RequiresImageUpload { get; set; }
+
+    [JsonIgnore]
+    public IFormFile ImageFile { get; set; }
     public string? UnprocessedImageUrl { get; set; }
     public string? ProcessedImageUrl { get; set; }
 
